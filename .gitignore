@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite / build
+.vite/
+coverage/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
