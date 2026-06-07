@@ -1,0 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-gray-100 font-sans antialiased;
+    /* tabular figures so monospace numerals line up in columns */
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+@layer components {
+  /* A single elevated card. No cards inside cards (design rule). */
+  .card {
+    @apply rounded-lg border border-border bg-panel p-4;
+  }
+
+  /* Monospace numerics for money, tokens, model + build ids. */
+  .num {
+    @apply font-mono tabular-nums;
+  }
+}
