@@ -23,3 +23,6 @@ coverage/
 .idea/
 .vscode/
 *.log
+
+# Local Claude Code preview config (not a deliverable)
+.claude/
