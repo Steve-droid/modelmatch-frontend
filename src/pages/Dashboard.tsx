@@ -27,6 +27,7 @@ import { QualityTrend } from "../components/QualityTrend";
 import { RunsTable } from "../components/RunsTable";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChatPanel } from "../components/ChatPanel";
+import markUrl from "../assets/brand/modelmatch-mark.svg";
 
 const RANGES: SavingsRange[] = ["all", "30d", "7d"];
 
@@ -287,8 +288,8 @@ function Header({
     <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/20 text-accent">
-            <Coins size={16} />
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+            <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
           </span>
           <span className="font-semibold tracking-tight">ModelMatch</span>
           {projectId != null && projects.length > 0 && (
