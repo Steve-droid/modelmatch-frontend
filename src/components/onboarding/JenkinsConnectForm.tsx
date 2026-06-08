@@ -18,15 +18,6 @@ const CRED_IDS = [
   },
 ];
 
-// ⚠️ TEMPORARY BRIDGE — remove when S15c lands.
-// The backend's PUT /projects/{id}/jenkins still REQUIRES non-empty jenkinsToken +
-// modelApiKey, but it never reads them (the stored refs are dead), and ci-setup needs
-// a JenkinsConnection row to exist. So we satisfy the contract with a non-secret
-// sentinel — NO real secret is ever collected or sent. Delete this sentinel (and pass
-// only baseUrl + jobName) once the S15c backend change makes those fields optional.
-// See docs/planning/00-backlog.md → S15c (Backend Jenkins metadata-only contract).
-const UNUSED_SECRET_BRIDGE = "managed-in-jenkins-credentials";
-
 // Jenkins SETUP — metadata only (base URL + job name). ModelMatch does not collect or
 // store the provider key or a Jenkins API token; those live in Jenkins credentials.
 export function JenkinsConnectForm({
@@ -54,9 +45,6 @@ export function JenkinsConnectForm({
       const conn = await connectJenkins(projectId, {
         baseUrl: baseUrl.trim(),
         jobName: jobName.trim(),
-        // sentinel for the backend's unused-but-required secret fields (see above)
-        jenkinsToken: UNUSED_SECRET_BRIDGE,
-        modelApiKey: UNUSED_SECRET_BRIDGE,
       });
       onConnected(conn);
     } catch (err: unknown) {

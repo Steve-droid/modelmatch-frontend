@@ -42,7 +42,7 @@ describe("JenkinsConnectForm (metadata only)", () => {
     expect(screen.queryByText(/never leave the backend/i)).not.toBeInTheDocument();
   });
 
-  it("sends only base URL + job name (secrets are the non-secret bridge sentinel)", async () => {
+  it("sends a metadata-only body — base URL + job name, no secret fields", async () => {
     vi.mocked(connectJenkins).mockResolvedValue(jenkinsConnectionFixture);
     const onConnected = vi.fn();
     render(<JenkinsConnectForm projectId={7} onConnected={onConnected} />);
@@ -53,11 +53,13 @@ describe("JenkinsConnectForm (metadata only)", () => {
     await waitFor(() => expect(onConnected).toHaveBeenCalledWith(jenkinsConnectionFixture));
     const [pid, body] = vi.mocked(connectJenkins).mock.calls[0];
     expect(pid).toBe(7);
-    expect(body.baseUrl).toBe("https://jenkins.example.com");
-    expect(body.jobName).toBe("acme-api/main");
-    // the bridge values are NOT real secrets the user typed
-    expect(body.jenkinsToken).toBe(body.modelApiKey); // same sentinel
-    expect(body.modelApiKey).not.toMatch(/sk-|token/i);
+    // exactly the two metadata fields — the backend rejects any secret fields (422)
+    expect(body).toEqual({
+      baseUrl: "https://jenkins.example.com",
+      jobName: "acme-api/main",
+    });
+    expect(body).not.toHaveProperty("jenkinsToken");
+    expect(body).not.toHaveProperty("modelApiKey");
   });
 
   it("bubbles a 401 up via onUnauthorized", async () => {

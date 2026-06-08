@@ -1,13 +1,12 @@
 // Types mirroring the Jenkins-connection + CI-setup DTOs (app/schemas/jenkins.py,
-// app/schemas/ci.py; camelCase out). The plaintext token + secrets only ever travel
-// to the backend; refs (never the secrets) come back.
+// app/schemas/ci.py; camelCase out). Secrets never travel to ModelMatch — they live
+// in Jenkins credentials; the connection is metadata-only in and out (no secret refs).
 
-// PUT /projects/{id}/jenkins — plaintext secrets in; refs out.
+// PUT /projects/{id}/jenkins — metadata only (base URL + job name). The backend
+// rejects any secret fields; the provider key + Jenkins token live in Jenkins.
 export interface JenkinsConnectInput {
   baseUrl: string;
   jobName: string;
-  jenkinsToken: string; // Jenkins API token (plaintext in transit only)
-  modelApiKey: string; // BYOK model key (plaintext in transit only)
 }
 
 export interface JenkinsConnection {
@@ -15,8 +14,6 @@ export interface JenkinsConnection {
   baseUrl: string;
   jobName: string;
   status: string;
-  jenkinsTokenRef: string; // secret-store reference, NOT the token
-  modelApiKeyRef: string; // secret-store reference, NOT the key
 }
 
 // GET /projects/{id}/ci-setup — the stage snippet + ingest URL. `token` is the
