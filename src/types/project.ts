@@ -10,4 +10,7 @@ export interface Project {
   baselineModelId: number;
   baselineModel: string;
   baselineVendor: string;
+  // Fully onboarded = a Jenkins connection exists AND its CI ingest token was minted.
+  // false → the dashboard badges the project "setup incomplete" with an edit path.
+  setupComplete: boolean;
 }

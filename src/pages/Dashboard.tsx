@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Coins, GitBranch, Plus, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Coins,
+  GitBranch,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import type { SavingsRange, SavingsResponse } from "../types/savings";
 import type { Project } from "../types/project";
 import { getSavings } from "../api/savings";
 import { listProjects } from "../api/projects";
 import { ApiError } from "../api/client";
+import { ProjectActions } from "../components/ProjectActions";
 import {
   formatPct,
   formatPctFromRate,
@@ -47,19 +55,23 @@ export function Dashboard({
   const [data, setData] = useState<SavingsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Bumped after an edit/re-pick to force a savings refetch (the selected model/
+  // baseline may have changed).
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   const handleUnauthorized = useCallback(() => onUnauthorized?.(), [onUnauthorized]);
 
-  // Load the user's projects, then pick the active one (deep-link param if valid,
-  // else the first project).
-  useEffect(() => {
-    let live = true;
-    listProjects()
-      .then((list) => {
-        if (!live) return;
-        setProjects(list);
-        // Prefer a just-created project (from onboarding), then a ?project= deep-link,
-        // then the first project.
+  // Load the user's projects + (re)select the active one. Keeps the current selection
+  // if it still exists (after an edit); otherwise prefers a just-created project, then a
+  // ?project= deep-link, then the first project (and null when none remain — e.g. after
+  // deleting the last one). Reused for refresh-after-change, not just first load.
+  const loadProjects = useCallback(async () => {
+    try {
+      const list = await listProjects();
+      setProjects(list);
+      setProjectsError(null);
+      setProjectId((current) => {
+        if (current != null && list.some((p) => p.id === current)) return current;
         const preferred =
           initialProjectId != null
             ? list.find((p) => p.id === initialProjectId)?.id
@@ -67,18 +79,18 @@ export function Dashboard({
         const wanted = initialProjectParam();
         const deepLinked =
           wanted != null ? list.find((p) => p.id === wanted)?.id : undefined;
-        setProjectId(preferred ?? deepLinked ?? list[0]?.id ?? null);
-      })
-      .catch((e: unknown) => {
-        if (!live) return;
-        if (e instanceof ApiError && e.status === 401) handleUnauthorized();
-        else if (e instanceof ApiError) setProjectsError(e.message);
-        else setProjectsError("Could not reach the backend.");
+        return preferred ?? deepLinked ?? list[0]?.id ?? null;
       });
-    return () => {
-      live = false;
-    };
+    } catch (e: unknown) {
+      if (e instanceof ApiError && e.status === 401) handleUnauthorized();
+      else if (e instanceof ApiError) setProjectsError(e.message);
+      else setProjectsError("Could not reach the backend.");
+    }
   }, [handleUnauthorized, initialProjectId]);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   // Clear the previous project's numbers the instant the selection changes, so they
   // never linger under the newly-selected project while its data loads. (Range
@@ -105,18 +117,37 @@ export function Dashboard({
     return () => {
       live = false;
     };
-  }, [projectId, range, handleUnauthorized]);
+  }, [projectId, range, refreshNonce, handleUnauthorized]);
 
   const k = data?.kpis;
   const noProjects = projects !== null && projects.length === 0;
+  const activeProject = projects?.find((p) => p.id === projectId) ?? null;
+
+  // After an edit/re-pick: reload the project list (names/setup status) and refetch
+  // savings (model/baseline may have changed).
+  const handleChanged = useCallback(() => {
+    void loadProjects();
+    setRefreshNonce((n) => n + 1);
+  }, [loadProjects]);
+
+  // After a delete: drop the selection so loadProjects re-picks a remaining project (or
+  // null → empty state), and reload.
+  const handleDeleted = useCallback(() => {
+    setProjectId(null);
+    void loadProjects();
+  }, [loadProjects]);
 
   return (
     <div className="min-h-full">
       <Header
         projects={projects ?? []}
         projectId={projectId}
+        activeProject={activeProject}
         onProject={setProjectId}
         onNewProject={onNewProject}
+        onChanged={handleChanged}
+        onDeleted={handleDeleted}
+        onUnauthorized={handleUnauthorized}
         range={range}
         onRange={setRange}
         status={k?.qualityStatus}
@@ -230,16 +261,24 @@ export function Dashboard({
 function Header({
   projects,
   projectId,
+  activeProject,
   onProject,
   onNewProject,
+  onChanged,
+  onDeleted,
+  onUnauthorized,
   range,
   onRange,
   status,
 }: {
   projects: Project[];
   projectId: number | null;
+  activeProject: Project | null;
   onProject: (id: number) => void;
   onNewProject?: () => void;
+  onChanged: () => void;
+  onDeleted: (deletedId: number) => void;
+  onUnauthorized?: () => void;
   range: SavingsRange;
   onRange: (r: SavingsRange) => void;
   status?: SavingsResponse["kpis"]["qualityStatus"];
@@ -257,6 +296,23 @@ function Header({
               projects={projects}
               value={projectId}
               onChange={onProject}
+            />
+          )}
+          {activeProject && !activeProject.setupComplete && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md border border-unrated/40 bg-unrated/10 px-2 py-1 text-xs font-medium text-unrated"
+              title="No CI ingest token yet — finish setup via Edit Jenkins, then add the CI stage."
+            >
+              <AlertTriangle size={12} />
+              Setup incomplete
+            </span>
+          )}
+          {activeProject && (
+            <ProjectActions
+              project={activeProject}
+              onChanged={onChanged}
+              onDeleted={onDeleted}
+              onUnauthorized={onUnauthorized}
             />
           )}
         </div>

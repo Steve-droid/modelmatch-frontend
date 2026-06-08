@@ -1,8 +1,20 @@
 import { useState } from "react";
 import { KeyRound, Loader2, Plug } from "lucide-react";
-import type { JenkinsConnection } from "../../types/ci";
-import { connectJenkins } from "../../api/jenkins";
+import type { JenkinsConnectInput } from "../../types/ci";
 import { ApiError } from "../../api/client";
+
+// Mirror the backend's AnyHttpUrl gate (app/schemas/jenkins.py): a real http(s) URL
+// with a host. http is allowed (not HTTPS-only); "aaa" fails (URL() throws) and so
+// must not advance. Kept in the FE purely to block the step early with an inline hint
+// — the backend stays the source of truth (it 422s anything that slips through).
+export function isValidJenkinsUrl(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname !== "";
+  } catch {
+    return false;
+  }
+}
 
 // The two Jenkins "Secret text" credentials the USER creates in Jenkins — the agent
 // reads them at runtime. ModelMatch never sees the provider key; it only mints the
@@ -20,21 +32,32 @@ const CRED_IDS = [
 
 // Jenkins SETUP — metadata only (base URL + job name). ModelMatch does not collect or
 // store the provider key or a Jenkins API token; those live in Jenkins credentials.
+// The submit is caller-owned (onSubmit) so this serves onboarding's defer-create
+// (create-then-connect) and editing an existing connection alike. Continue is blocked
+// until the URL is a valid http(s) URL + the job name is non-empty.
 export function JenkinsConnectForm({
-  projectId,
-  onConnected,
+  onSubmit,
   onUnauthorized,
+  initialBaseUrl = "",
+  initialJobName = "",
+  submitLabel = "Continue",
 }: {
-  projectId: number;
-  onConnected: (conn: JenkinsConnection) => void;
+  onSubmit: (input: JenkinsConnectInput) => Promise<void>;
   onUnauthorized?: () => void;
+  initialBaseUrl?: string;
+  initialJobName?: string;
+  submitLabel?: string;
 }) {
-  const [baseUrl, setBaseUrl] = useState("");
-  const [jobName, setJobName] = useState("");
+  const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
+  const [jobName, setJobName] = useState(initialJobName);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = baseUrl.trim() !== "" && jobName.trim() !== "" && !submitting;
+  const urlValid = isValidJenkinsUrl(baseUrl);
+  // Only nag about a bad URL once the user has typed something — no error on an
+  // untouched empty field.
+  const showUrlHint = baseUrl.trim() !== "" && !urlValid;
+  const canSubmit = urlValid && jobName.trim() !== "" && !submitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,11 +65,7 @@ export function JenkinsConnectForm({
     setSubmitting(true);
     setError(null);
     try {
-      const conn = await connectJenkins(projectId, {
-        baseUrl: baseUrl.trim(),
-        jobName: jobName.trim(),
-      });
-      onConnected(conn);
+      await onSubmit({ baseUrl: baseUrl.trim(), jobName: jobName.trim() });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) onUnauthorized?.();
       else if (err instanceof ApiError) setError(err.message);
@@ -76,8 +95,14 @@ export function JenkinsConnectForm({
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="https://jenkins.example.com"
           aria-label="Jenkins base URL"
+          aria-invalid={showUrlHint}
           className={inputCls}
         />
+        {showUrlHint && (
+          <span className="text-xs text-risk">
+            Enter a valid URL, e.g. http://jenkins.example.com
+          </span>
+        )}
       </Field>
       <Field label="Job name">
         <input
@@ -117,7 +142,7 @@ export function JenkinsConnectForm({
         className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plug size={15} />}
-        Continue
+        {submitLabel}
       </button>
     </form>
   );

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Loader2, ShieldAlert, Terminal } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowRight, Loader2, RotateCw, ShieldAlert, Terminal } from "lucide-react";
 import type { CiSetup } from "../../types/ci";
-import { getCiSetup } from "../../api/ci";
+import { getCiSetup, rotateCiToken } from "../../api/ci";
 import { ApiError } from "../../api/client";
 
 // Fetches and shows the Jenkins stage snippet + the per-project ingest token. The
@@ -19,15 +19,24 @@ export function CiSetupView({
   const [setup, setSetup] = useState<CiSetup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
 
-  // GET /ci-setup is MINT-ONCE (the plaintext token is returned only on the first
-  // call), so it must fire exactly once per project — not twice. A projectId-keyed
-  // ref guards against React StrictMode's double-invoke (and any incidental remount)
-  // burning the token before we can show it.
-  const fetchedFor = useRef<number | null>(null);
-  useEffect(() => {
-    if (fetchedFor.current === projectId) return;
-    fetchedFor.current = projectId;
+  // Regenerate a lost mint-once token: issue a fresh one and show it (the old token
+  // stops working). The recovery for "minted but never copied".
+  const regenerate = useCallback(() => {
+    setRotating(true);
+    setError(null);
+    rotateCiToken(projectId)
+      .then(setSetup)
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
+        else if (e instanceof ApiError) setError(e.message);
+        else setError("Could not reach the backend.");
+      })
+      .finally(() => setRotating(false));
+  }, [projectId, onUnauthorized]);
+
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
     getCiSetup(projectId)
@@ -39,6 +48,19 @@ export function CiSetupView({
       })
       .finally(() => setLoading(false));
   }, [projectId, onUnauthorized]);
+
+  // GET /ci-setup is MINT-ONCE (the plaintext token is returned only on the first
+  // call), so the automatic fetch must fire exactly once per project — not twice. A
+  // projectId-keyed ref guards against React StrictMode's double-invoke (and any
+  // incidental remount) burning the token before we can show it. A *manual* retry
+  // (below) is safe: a failed fetch didn't mint, and a re-mint just yields the
+  // already-minted (null-token) case, never a stranded screen.
+  const fetchedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (fetchedFor.current === projectId) return;
+    fetchedFor.current = projectId;
+    load();
+  }, [projectId, load]);
 
   return (
     <div className="card flex flex-col gap-4">
@@ -61,8 +83,18 @@ export function CiSetupView({
         </div>
       )}
       {error && !loading && (
-        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
-          {error}
+        <div className="flex flex-col gap-2">
+          <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+            {error}
+          </div>
+          <button
+            type="button"
+            onClick={load}
+            className="flex items-center gap-2 self-start rounded-md border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100"
+          >
+            <RotateCw size={14} />
+            Retry
+          </button>
         </div>
       )}
 
@@ -80,9 +112,20 @@ export function CiSetupView({
               </code>
             </div>
           ) : (
-            <div className="rounded-md border border-border bg-panel-2 px-3 py-2 text-xs text-muted">
-              CI token was already minted for this project and can't be shown again —
-              rotate it from the project settings to issue a new one.
+            <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5">
+              <p className="text-xs text-muted">
+                CI token was already minted for this project and can't be shown again. If
+                you didn't copy it, regenerate a fresh one — the old token stops working.
+              </p>
+              <button
+                type="button"
+                onClick={regenerate}
+                disabled={rotating}
+                className="mt-2 flex items-center gap-2 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
+              >
+                {rotating ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />}
+                Regenerate token
+              </button>
             </div>
           )}
 

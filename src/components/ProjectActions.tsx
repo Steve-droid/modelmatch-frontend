@@ -1,0 +1,348 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  Loader2,
+  Pencil,
+  Plug,
+  Settings2,
+  Terminal,
+  Trash2,
+} from "lucide-react";
+import type { Project } from "../types/project";
+import type { RecommendationResult } from "../types/recommend";
+import { deleteProject, updateProject } from "../api/projects";
+import { connectJenkins, getJenkins } from "../api/jenkins";
+import { ApiError } from "../api/client";
+import { Modal } from "./Modal";
+import { RecommenderForm } from "./onboarding/RecommenderForm";
+import { RecommendationView } from "./onboarding/RecommendationView";
+import { JenkinsConnectForm } from "./onboarding/JenkinsConnectForm";
+import { CiSetupView } from "./onboarding/CiSetupView";
+
+type View = "menu" | "editJenkins" | "cisetup" | "repick" | "delete";
+
+// Per-project actions on the dashboard (S15d): edit the Jenkins connection, re-pick the
+// model (full recommender re-run → PATCH), or delete the project (confirm → cascade).
+// onChanged refreshes the dashboard after an edit; onDeleted hands control back so the
+// parent can re-select/empty-state.
+export function ProjectActions({
+  project,
+  onChanged,
+  onDeleted,
+  onUnauthorized,
+}: {
+  project: Project;
+  onChanged: () => void;
+  onDeleted: (deletedId: number) => void;
+  onUnauthorized?: () => void;
+}) {
+  const [view, setView] = useState<View>("menu");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close the dropdown on an outside click.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [menuOpen]);
+
+  function open(v: View) {
+    setMenuOpen(false);
+    setView(v);
+  }
+  function close() {
+    setView("menu");
+  }
+
+  return (
+    <div className="relative inline-flex" ref={menuRef}>
+      <button
+        onClick={() => setMenuOpen((o) => !o)}
+        aria-label="Project actions"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        className="flex items-center gap-1 rounded-md border border-border bg-panel px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
+      >
+        <Settings2 size={13} />
+      </button>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-md border border-border bg-panel-2 py-1 shadow-lg"
+        >
+          <MenuItem icon={<Plug size={13} />} label="Edit Jenkins" onClick={() => open("editJenkins")} />
+          <MenuItem icon={<Terminal size={13} />} label="CI setup & token" onClick={() => open("cisetup")} />
+          <MenuItem icon={<Pencil size={13} />} label="Re-pick model" onClick={() => open("repick")} />
+          <MenuItem
+            icon={<Trash2 size={13} />}
+            label="Delete project"
+            danger
+            onClick={() => open("delete")}
+          />
+        </div>
+      )}
+
+      {view === "editJenkins" && (
+        <Modal title={`Edit Jenkins — ${project.name}`} onClose={close}>
+          <EditJenkins
+            project={project}
+            onUnauthorized={onUnauthorized}
+            onSaved={() => {
+              onChanged();
+              close();
+            }}
+          />
+        </Modal>
+      )}
+
+      {view === "cisetup" && (
+        <Modal title={`CI setup — ${project.name}`} onClose={close}>
+          <CiSetupView
+            projectId={project.id}
+            onUnauthorized={onUnauthorized}
+            onDone={() => {
+              onChanged(); // a first mint here flips setupComplete
+              close();
+            }}
+          />
+        </Modal>
+      )}
+
+      {view === "repick" && (
+        <Modal title={`Re-pick model — ${project.name}`} onClose={close}>
+          <Repick
+            project={project}
+            onUnauthorized={onUnauthorized}
+            onSaved={() => {
+              onChanged();
+              close();
+            }}
+          />
+        </Modal>
+      )}
+
+      {view === "delete" && (
+        <Modal title={`Delete ${project.name}?`} onClose={close}>
+          <DeleteConfirm
+            project={project}
+            onCancel={close}
+            onUnauthorized={onUnauthorized}
+            onDeleted={() => onDeleted(project.id)}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      role="menuitem"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-medium transition-colors hover:bg-panel ${
+        danger ? "text-risk hover:text-risk" : "text-gray-200 hover:text-gray-100"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+// Edit-Jenkins flow: load the current metadata (404 = never connected → blank), then
+// reuse JenkinsConnectForm to PUT the new values. For a setup-INCOMPLETE project the
+// PUT alone isn't enough (no CI token yet), so after saving we continue into
+// CiSetupView to mint the token + show the snippet — the same jenkins→cisetup sequence
+// as onboarding. A complete project just saves and closes.
+function EditJenkins({
+  project,
+  onSaved,
+  onUnauthorized,
+}: {
+  project: Project;
+  onSaved: () => void;
+  onUnauthorized?: () => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [initial, setInitial] = useState({ baseUrl: "", jobName: "" });
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [showCiSetup, setShowCiSetup] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    getJenkins(project.id)
+      .then((c) => live && setInitial({ baseUrl: c.baseUrl, jobName: c.jobName }))
+      .catch((e: unknown) => {
+        if (!live) return;
+        // Only a 404 means "no connection yet" (setup-incomplete) → start blank. A
+        // 401 logs out; anything else is a real failure we must surface, not silently
+        // present an empty form as if there were no connection.
+        if (e instanceof ApiError && e.status === 404) return;
+        if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
+        else if (e instanceof ApiError) setLoadError(e.message);
+        else setLoadError("Could not load the current Jenkins settings.");
+      })
+      .finally(() => live && setLoaded(true));
+    return () => {
+      live = false;
+    };
+  }, [project.id, onUnauthorized]);
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted">
+        <Loader2 size={14} className="animate-spin" />
+        Loading connection…
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+        {loadError}
+      </div>
+    );
+  }
+
+  // Finish setup: mint the CI token + show the stage snippet, then close + refresh.
+  if (showCiSetup) {
+    return (
+      <CiSetupView projectId={project.id} onDone={onSaved} onUnauthorized={onUnauthorized} />
+    );
+  }
+
+  return (
+    <JenkinsConnectForm
+      initialBaseUrl={initial.baseUrl}
+      initialJobName={initial.jobName}
+      submitLabel="Save changes"
+      onUnauthorized={onUnauthorized}
+      onSubmit={async (input) => {
+        await connectJenkins(project.id, input);
+        // Incomplete project → continue to CI setup (the missing token); else done.
+        if (project.setupComplete) onSaved();
+        else setShowCiSetup(true);
+      }}
+    />
+  );
+}
+
+// Re-pick flow: a fresh recommender run (new shortlist) → choose → PATCH the project's
+// selected option + baseline. Mirrors onboarding's recommend step.
+function Repick({
+  project,
+  onSaved,
+  onUnauthorized,
+}: {
+  project: Project;
+  onSaved: () => void;
+  onUnauthorized?: () => void;
+}) {
+  const [result, setResult] = useState<RecommendationResult | null>(null);
+
+  if (result === null) {
+    return <RecommenderForm onResult={setResult} onUnauthorized={onUnauthorized} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        onClick={() => setResult(null)}
+        className="self-start text-xs font-medium text-muted transition-colors hover:text-gray-100"
+      >
+        ← Refine inputs
+      </button>
+      <RecommendationView
+        result={result}
+        onUnauthorized={onUnauthorized}
+        submitLabel="Save changes"
+        initialName={project.name}
+        onSubmit={async (pick) => {
+          await updateProject(project.id, pick);
+          onSaved();
+        }}
+      />
+    </div>
+  );
+}
+
+// Delete confirmation: spells out that all of the project's data goes with it (the DB
+// cascade), then deletes on confirm.
+function DeleteConfirm({
+  project,
+  onCancel,
+  onDeleted,
+  onUnauthorized,
+}: {
+  project: Project;
+  onCancel: () => void;
+  onDeleted: () => void;
+  onUnauthorized?: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteProject(project.id);
+      onDeleted();
+    } catch (e: unknown) {
+      if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
+      else if (e instanceof ApiError) setError(e.message);
+      else setError("Could not reach the backend.");
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted">
+        This permanently removes <span className="font-medium text-gray-100">{project.name}</span>{" "}
+        and all of its data — CI runs, savings, findings, the Jenkins connection and chat
+        history. This can't be undone.
+      </p>
+      {error && (
+        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+          {error}
+        </div>
+      )}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={onCancel}
+          disabled={deleting}
+          className="rounded-md border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="flex items-center gap-2 rounded-md bg-risk px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+        >
+          {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          Delete project
+        </button>
+      </div>
+    </div>
+  );
+}

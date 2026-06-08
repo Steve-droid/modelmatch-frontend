@@ -1,6 +1,6 @@
-// Projects API calls — thin typed wrappers over apiGet/apiPost.
+// Projects API calls — thin typed wrappers over apiGet/apiPost/apiPatch/apiDelete.
 
-import { apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 import type { Project } from "../types/project";
 
 // The signed-in user's projects (owner-scoped server-side). Powers the switcher.
@@ -17,4 +17,24 @@ export interface CreateProjectInput {
 
 export function createProject(input: CreateProjectInput): Promise<Project> {
   return apiPost<Project>("/projects", input);
+}
+
+// Edit a project (PATCH /projects/{id}): rename and/or re-pick the model + baseline.
+// Every field is optional — send only what changed (a re-pick sends both ids).
+export interface UpdateProjectInput {
+  name?: string;
+  selectedOptionId?: number;
+  baselineModelId?: number;
+}
+
+export function updateProject(
+  projectId: number,
+  input: UpdateProjectInput,
+): Promise<Project> {
+  return apiPatch<Project>(`/projects/${projectId}`, input);
+}
+
+// Delete a project + its whole subtree server-side (DELETE /projects/{id}, 204).
+export function deleteProject(projectId: number): Promise<void> {
+  return apiDelete(`/projects/${projectId}`);
 }
