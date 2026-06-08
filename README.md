@@ -97,12 +97,55 @@ npm install
 npm run dev            # Vite dev server on :5173
 npm run build          # tsc + production build (served by nginx in the image)
 npm run typecheck      # tsc --noEmit
-npm run test           # Vitest
+npm run test           # Vitest (unit/component — 68 tests)
+npm run e2e            # Playwright happy path (hermetic; auto-starts the dev server)
 ```
 
 Point `VITE_API_BASE_URL` at a running backend (see the backend README / the
 [runbook](../modelmatch-backend/docs/runbook.md) for `docker compose up`). In production the API base
 URL is injected at runtime via a templated `/config.js` served by nginx — nothing is hardcoded.
+
+### End-to-end tests (Playwright)
+
+Specs live in `e2e/`; config in `playwright.config.ts`. First time:
+`npx playwright install chromium`.
+
+```bash
+npm run e2e          # happy-path project only (CI-able, backend fully mocked via page.route)
+npm run e2e:headed   # same, with a visible browser
+npm run e2e:all      # also runs the optional real-stack smoke
+```
+
+- **happy-path** (`e2e/happy-path.spec.ts`) — drives the real SPA login → home hub →
+  *Create a new CI-Agent* → recommend (ci_review) → pick → defer-create at the Jenkins step → CI-setup
+  token → dashboard → grounded chat, with a **mocked CI run** seeding the panels. Hermetic + deterministic
+  (no DB, no LLM).
+- **real-stack** (`e2e/real-stack.smoke.spec.ts`) — the same flow against a **real backend** on `:8000`,
+  exercising the genuine `POST /ci-runs` ingest with a real per-project token. **Self-skips** when the
+  backend is unreachable, so it's a no-op in plain CI. Both cost **$0**.
+
+> The real-Jenkins proof path (the CI-Agent reviewing a real PR on EC2) is a manual, gated rehearsal:
+> [`ec2-jenkins-cowsay-smoke.md`](../modelmatch-backend/docs/ec2-jenkins-cowsay-smoke.md).
+
+### Containerized stack (`docker-compose.yaml`)
+
+`docker-compose.yaml` (this repo) brings the **whole app** up from images — `db`
+(postgres:16) → a one-off **`migrate`** step (the backend image running
+`alembic upgrade head` + catalog seed) → `backend` (gunicorn) → `frontend` (this image's
+nginx, with `config.js` injected at start from `API_BASE_URL`). It's used for FE
+integration tests (build images locally) and for the real-Jenkins smoke (set
+`BACKEND_IMAGE`/`FRONTEND_IMAGE` to **ECR** refs and pull). Override via a `.env`
+(`JWT_SECRET` is required; see the file header for `PUBLIC_BASE_URL` vs `API_BASE_URL`).
+
+```bash
+# local: build both images, then up the stack
+docker build -t modelmatch-frontend:latest .
+docker build -t modelmatch-backend:latest ../modelmatch-backend
+JWT_SECRET=$(openssl rand -hex 32) docker compose up -d   # FE :8080 · BE :8000 · db
+
+# deploy-from-registry (the smoke): build --platform linux/amd64, push to ECR, then on
+# the app host: aws ecr get-login-password | docker login … ; docker compose pull && up -d
+```
 
 **New here?** The cross-cutting [Runbook & Demo Walkthrough](../modelmatch-backend/docs/runbook.md)
 covers the product story, the two-surface model rule, env reference, and an end-to-end demo script.
