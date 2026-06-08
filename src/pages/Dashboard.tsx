@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Coins, GitBranch, ShieldCheck } from "lucide-react";
+import { Activity, Coins, GitBranch, Plus, ShieldCheck } from "lucide-react";
 import type { SavingsRange, SavingsResponse } from "../types/savings";
 import type { Project } from "../types/project";
 import { getSavings } from "../api/savings";
@@ -30,7 +30,15 @@ function initialProjectParam(): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export function Dashboard({ onUnauthorized }: { onUnauthorized?: () => void }) {
+export function Dashboard({
+  initialProjectId,
+  onNewProject,
+  onUnauthorized,
+}: {
+  initialProjectId?: number | null;
+  onNewProject?: () => void;
+  onUnauthorized?: () => void;
+}) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
@@ -50,10 +58,16 @@ export function Dashboard({ onUnauthorized }: { onUnauthorized?: () => void }) {
       .then((list) => {
         if (!live) return;
         setProjects(list);
+        // Prefer a just-created project (from onboarding), then a ?project= deep-link,
+        // then the first project.
+        const preferred =
+          initialProjectId != null
+            ? list.find((p) => p.id === initialProjectId)?.id
+            : undefined;
         const wanted = initialProjectParam();
         const deepLinked =
           wanted != null ? list.find((p) => p.id === wanted)?.id : undefined;
-        setProjectId(deepLinked ?? list[0]?.id ?? null);
+        setProjectId(preferred ?? deepLinked ?? list[0]?.id ?? null);
       })
       .catch((e: unknown) => {
         if (!live) return;
@@ -64,7 +78,7 @@ export function Dashboard({ onUnauthorized }: { onUnauthorized?: () => void }) {
     return () => {
       live = false;
     };
-  }, [handleUnauthorized]);
+  }, [handleUnauthorized, initialProjectId]);
 
   // Clear the previous project's numbers the instant the selection changes, so they
   // never linger under the newly-selected project while its data loads. (Range
@@ -102,6 +116,7 @@ export function Dashboard({ onUnauthorized }: { onUnauthorized?: () => void }) {
         projects={projects ?? []}
         projectId={projectId}
         onProject={setProjectId}
+        onNewProject={onNewProject}
         range={range}
         onRange={setRange}
         status={k?.qualityStatus}
@@ -216,6 +231,7 @@ function Header({
   projects,
   projectId,
   onProject,
+  onNewProject,
   range,
   onRange,
   status,
@@ -223,6 +239,7 @@ function Header({
   projects: Project[];
   projectId: number | null;
   onProject: (id: number) => void;
+  onNewProject?: () => void;
   range: SavingsRange;
   onRange: (r: SavingsRange) => void;
   status?: SavingsResponse["kpis"]["qualityStatus"];
@@ -246,6 +263,15 @@ function Header({
 
         <div className="flex items-center gap-2 sm:gap-3">
           {status && <StatusBadge status={status} />}
+          {onNewProject && (
+            <button
+              onClick={onNewProject}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
+            >
+              <Plus size={13} />
+              New project
+            </button>
+          )}
           <div className="flex items-center rounded-md border border-border bg-panel p-0.5">
             {RANGES.map((r) => (
               <button

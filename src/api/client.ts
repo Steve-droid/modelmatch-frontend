@@ -58,8 +58,21 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 // Generic POST: JSON body + Bearer auth, same ApiError contract as apiGet.
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  return apiSend<T>("POST", path, body);
+}
+
+// Generic PUT (e.g. connect Jenkins): same contract as apiPost.
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return apiSend<T>("PUT", path, body);
+}
+
+async function apiSend<T>(
+  method: "POST" | "PUT",
+  path: string,
+  body: unknown,
+): Promise<T> {
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
