@@ -29,3 +29,15 @@
     @apply font-mono tabular-nums;
   }
 }
+
+/* Subtle message fade-in for the chat panel (design rule: motion useful, not heavy). */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

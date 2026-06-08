@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { KpiCard } from "../KpiCard";
 import { QualityPill } from "../StatusBadge";
 import { RunsTable } from "../RunsTable";
 import { buildAreaData } from "../SavingsAreaChart";
 import { formatUSD } from "../../lib/format";
-import { savingsFixture, overspendFixture, overspendSeriesPoint } from "../../test/fixtures";
+import {
+  savingsFixture,
+  overspendFixture,
+  overspendSeriesPoint,
+  projectsFixture,
+  chatHistoryFixture,
+} from "../../test/fixtures";
 
 // getRunFindings is called from RunsTable on row click; stub it so imports resolve.
 vi.mock("../../api/savings", () => ({
@@ -14,6 +20,16 @@ vi.mock("../../api/savings", () => ({
   getRunFindings: vi.fn().mockResolvedValue({ runId: 0, findings: [] }),
 }));
 import { getSavings } from "../../api/savings";
+
+// The Dashboard now loads the project list (switcher) and mounts the chat panel;
+// stub both so it can render savings without real network calls.
+vi.mock("../../api/projects", () => ({ listProjects: vi.fn() }));
+import { listProjects } from "../../api/projects";
+vi.mock("../../api/chat", () => ({
+  getChatHistory: vi.fn(),
+  postChat: vi.fn(),
+}));
+import { getChatHistory } from "../../api/chat";
 
 describe("formatUSD", () => {
   it("uses finer precision below a dollar, 2dp above", () => {
@@ -84,11 +100,36 @@ describe("RunsTable", () => {
 describe("Dashboard (overspend)", () => {
   it("labels a net overspend in red copy, not green 'saved'", async () => {
     vi.mocked(getSavings).mockResolvedValue(overspendFixture);
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
     const { Dashboard } = await import("../../pages/Dashboard");
     render(<Dashboard />);
     await screen.findByText("Net overspend");
     // count-up settles on the final frame → poll for the settled value
     const value = await screen.findByText("-$0.0100");
     expect(value.className).toContain("text-risk");
+  });
+
+  it("clears the previous project's numbers when switching projects", async () => {
+    // Project 1 resolves; project 2 stays pending so we can observe the gap.
+    vi.mocked(getSavings)
+      .mockResolvedValueOnce(savingsFixture) // project 1 ($0.0450 saved)
+      .mockReturnValueOnce(new Promise(() => {})); // project 2 — never resolves
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
+    const { Dashboard } = await import("../../pages/Dashboard");
+    render(<Dashboard />);
+
+    // project 1's savings panel is on screen (stable label, not the animated number)
+    await screen.findByText("Cumulative saved");
+
+    // switch to project 2 (savings still loading)
+    fireEvent.change(screen.getByLabelText("Select project"), { target: { value: "2" } });
+
+    // project 1's numbers must disappear immediately — not linger under project 2
+    await waitFor(() =>
+      expect(screen.queryByText("Cumulative saved")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Loading savings…")).toBeInTheDocument();
   });
 });
