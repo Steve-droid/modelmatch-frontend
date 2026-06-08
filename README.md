@@ -27,9 +27,11 @@ Key features:
   as a fixed task pill with **budget** and **agent-speed (latency)** selectors → a pick result. The
   deterministic backend recommender also supports other task types + a keyword pre-fill endpoint; the FE
   doesn't surface those yet.
-- **Project + Jenkins setup** — an onboarding wizard: pick → create project → connect a Jenkins job by
-  **base URL + job name only** (no secrets sent — the agent reads the BYOK key + CI token from the
-  user's own Jenkins credentials) → copy the generated CI stage snippet with its **one-time CI token**.
+- **Project + Jenkins setup** — an onboarding wizard: pick → connect a Jenkins job by **base URL + job
+  name only** (validated; no secrets sent — the agent reads the BYOK key + CI token from the user's own
+  Jenkins credentials) → copy the generated CI stage snippet with its **one-time CI token**. Project
+  creation is **deferred to commit** (abandoning leaves no orphan); existing projects can be **edited /
+  re-picked**, **deleted**, and have their **CI token regenerated**.
 - **Savings dashboard (centerpiece)** — KPI cards with sparklines, an actual-vs-baseline area chart
   (shaded gap = savings), cost/run bars colored by quality, token usage, a quality trend, and a runs
   table. Dark-mode default, monospace numbers.
@@ -84,9 +86,10 @@ modelmatch-frontend/
 
 ## Getting Started
 
-> **Status: built through S15c** (frontend **v0.4.0**) — login + auth gate, the savings dashboard +
-> grounded chat panel (S15a), and the recommender / project / Jenkins onboarding wizard (S15b/S15c) are
-> in. **Project lifecycle** (edit / re-pick, delete, discard-on-abandon) is **[in progress]** (S15d).
+> **Status: built through S15d** (frontend **v0.5.0**) — login + auth gate, the savings dashboard +
+> grounded chat panel (S15a), the recommender / project / Jenkins onboarding wizard (S15b/S15c), and
+> **project lifecycle** (defer-create so abandoning leaves no orphan, Jenkins URL validation, edit /
+> re-pick, delete, regenerate CI token) (S15d) are all in.
 
 ```bash
 cp .env.example .env   # set VITE_API_BASE_URL (defaults to http://localhost:8000)
@@ -129,9 +132,9 @@ graph LR
 
 ## Release History
 
-SemVer tags on `main`. Current: **v0.4.0** (recommender / project / Jenkins onboarding + S15c
-alignment). Earlier: v0.3.0 login + dashboard + chat (S15a) · v0.2.0 first savings dashboard (S14).
-Full log: `git tag`.
+SemVer tags on `main`. Current: **v0.5.0** (S15d project lifecycle — defer-create, URL validation,
+edit/delete + CI-token regenerate). Earlier: v0.4.0 recommender / project / Jenkins onboarding (S15b/c) ·
+v0.3.0 login + dashboard + chat (S15a) · v0.2.0 first savings dashboard (S14). Full log: `git tag`.
 
 - 0.0.1 — Initial scaffold (repo skeleton + stub entrypoint).
 
