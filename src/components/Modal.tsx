@@ -1,8 +1,16 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 // Minimal dark-theme modal: a dimmed backdrop + a centered panel. Closes on Escape or
 // backdrop click. Used by the per-project actions (edit Jenkins / re-pick / delete).
+//
+// Rendered through a portal to <body>: the dashboard header (where the actions menu
+// lives) uses `backdrop-blur`, and a `backdrop-filter` ancestor becomes the containing
+// block for `position: fixed` descendants AND its own stacking context. Without the
+// portal the "fixed inset-0" overlay was clamped to the thin header box and painted
+// under the dashboard cards. Portaling to <body> escapes both, so the overlay truly
+// covers the viewport above everything.
 export function Modal({
   title,
   onClose,
@@ -18,7 +26,7 @@ export function Modal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-8"
       onClick={onClose}
@@ -42,6 +50,7 @@ export function Modal({
         </div>
         <div className="p-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
