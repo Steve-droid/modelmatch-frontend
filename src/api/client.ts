@@ -66,8 +66,13 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return apiSend<T>("PUT", path, body);
 }
 
+// Generic PATCH (e.g. edit/re-pick a project): same contract as apiPost.
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return apiSend<T>("PATCH", path, body);
+}
+
 async function apiSend<T>(
-  method: "POST" | "PUT",
+  method: "POST" | "PUT" | "PATCH",
   path: string,
   body: unknown,
 ): Promise<T> {
@@ -78,4 +83,13 @@ async function apiSend<T>(
   });
   if (!res.ok) throw await toApiError(res);
   return (await res.json()) as T;
+}
+
+// DELETE: a 204 No Content carries no JSON body, so this resolves to void.
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${config.apiBaseUrl}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw await toApiError(res);
 }

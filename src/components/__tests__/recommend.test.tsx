@@ -4,23 +4,20 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { RecommenderForm } from "../onboarding/RecommenderForm";
 import { RecommendationView } from "../onboarding/RecommendationView";
 import { ApiError } from "../../api/client";
-import {
-  recommendationFixture,
-  createdProjectFixture,
-} from "../../test/fixtures";
+import { recommendationFixture } from "../../test/fixtures";
 
 vi.mock("../../api/recommend", () => ({
   postRecommendation: vi.fn(),
 }));
 import { postRecommendation } from "../../api/recommend";
 
-vi.mock("../../api/projects", () => ({ createProject: vi.fn() }));
-import { createProject } from "../../api/projects";
-
 beforeEach(() => {
   vi.mocked(postRecommendation).mockReset();
-  vi.mocked(createProject).mockReset();
 });
+
+// The view is persistence-agnostic now (S15d): it emits the chosen pick via onSubmit;
+// the parent creates (onboarding) or PATCHes (edit). These assert the pick payload.
+const okSubmit = () => vi.fn().mockResolvedValue(undefined);
 
 describe("RecommenderForm", () => {
   it("submits the structured form and hands the result up", async () => {
@@ -83,39 +80,39 @@ describe("RecommenderForm", () => {
 
 describe("RecommendationView", () => {
   it("renders the suggestion, baseline, comparability group and shortlist", () => {
-    render(<RecommendationView result={recommendationFixture} onCreated={vi.fn()} />);
+    render(<RecommendationView result={recommendationFixture} onSubmit={okSubmit()} />);
     expect(screen.getByText(/Compared like-for-like within CodeReviewBench/)).toBeInTheDocument();
     expect(screen.getByText("Suggested")).toBeInTheDocument();
     expect(screen.getByText("Nova 2 Lite")).toBeInTheDocument(); // the other shortlist option
     expect(screen.getByText(/Claude Sonnet 4.5/)).toBeInTheDocument(); // baseline
   });
 
-  it("creates a project from the suggested option + baseline by default", async () => {
-    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
-    const onCreated = vi.fn();
-    render(<RecommendationView result={recommendationFixture} onCreated={onCreated} />);
+  it("emits the suggested option + baseline by default", async () => {
+    const onSubmit = okSubmit();
+    render(<RecommendationView result={recommendationFixture} onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText("Project name"), { target: { value: "acme-api" } });
     fireEvent.click(screen.getByRole("button", { name: /create project/i }));
 
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(createdProjectFixture));
-    expect(createProject).toHaveBeenCalledWith({
-      name: "acme-api",
-      selectedOptionId: 11, // suggested
-      baselineModelId: 9, // baseline.modelId
-    });
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        name: "acme-api",
+        selectedOptionId: 11, // suggested
+        baselineModelId: 9, // baseline.modelId
+      }),
+    );
   });
 
-  it("uses the chosen shortlist option in the create payload", async () => {
-    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
-    render(<RecommendationView result={recommendationFixture} onCreated={vi.fn()} />);
+  it("uses the chosen shortlist option in the emitted pick", async () => {
+    const onSubmit = okSubmit();
+    render(<RecommendationView result={recommendationFixture} onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByText("Nova 2 Lite")); // select the non-suggested option
     fireEvent.change(screen.getByLabelText("Project name"), { target: { value: "acme-api" } });
     fireEvent.click(screen.getByRole("button", { name: /create project/i }));
 
     await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
+      expect(onSubmit).toHaveBeenCalledWith({
         name: "acme-api",
         selectedOptionId: 12, // the chosen Nova option
         baselineModelId: 9,
@@ -123,13 +120,25 @@ describe("RecommendationView", () => {
     );
   });
 
+  it("supports an edit label + a prefilled name (re-pick mode)", () => {
+    render(
+      <RecommendationView
+        result={recommendationFixture}
+        onSubmit={okSubmit()}
+        submitLabel="Save changes"
+        initialName="existing-project"
+      />,
+    );
+    expect(screen.getByLabelText("Project name")).toHaveValue("existing-project");
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();
+  });
+
   it("bubbles a 401 up via onUnauthorized", async () => {
-    vi.mocked(createProject).mockRejectedValue(new ApiError(401, "expired"));
     const onUnauthorized = vi.fn();
     render(
       <RecommendationView
         result={recommendationFixture}
-        onCreated={vi.fn()}
+        onSubmit={vi.fn().mockRejectedValue(new ApiError(401, "expired"))}
         onUnauthorized={onUnauthorized}
       />,
     );
@@ -157,20 +166,19 @@ describe("RecommendationView", () => {
       suggested: openAiSuggested,
       shortlist: [openAiSuggested, runnable],
     };
-    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
-    const onCreated = vi.fn();
-    render(<RecommendationView result={result} onCreated={onCreated} />);
+    const onSubmit = okSubmit();
+    render(<RecommendationView result={result} onSubmit={onSubmit} />);
 
     // OpenAI is not offered; the runnable Anthropic option is
     expect(screen.queryByText("GPT-5 Mini")).not.toBeInTheDocument();
     expect(screen.getByText("Claude Haiku 4.5")).toBeInTheDocument();
     expect(screen.getByText(/data-only option.*hidden/i)).toBeInTheDocument();
 
-    // creating defaults to the runnable option, never the filtered-out OpenAI one
+    // defaults to the runnable option, never the filtered-out OpenAI one
     fireEvent.change(screen.getByLabelText("Project name"), { target: { value: "acme-api" } });
     fireEvent.click(screen.getByRole("button", { name: /create project/i }));
     await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
+      expect(onSubmit).toHaveBeenCalledWith({
         name: "acme-api",
         selectedOptionId: 22, // the runnable Anthropic option
         baselineModelId: recommendationFixture.baseline.modelId,
