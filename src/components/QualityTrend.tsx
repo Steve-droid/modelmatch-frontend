@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import type { SavingsSeriesPoint } from "../types/savings";
 import { chartColors } from "../lib/colors";
-import { formatDateShort, formatDateTime } from "../lib/format";
+import { formatDateTime } from "../lib/format";
 import { ChartCard, TooltipBox, axisProps, chartMargin } from "./chart-bits";
 
 // Acceptance rate per run (%) vs the quality threshold reference line. Points below
@@ -22,8 +22,9 @@ export function QualityTrend({
   series: SavingsSeriesPoint[];
   threshold: number;
 }) {
-  const data = series.map((p) => ({
-    label: formatDateShort(p.date),
+  const data = series.map((p, i) => ({
+    // X axis = Jenkins build (each point is one CI run); same label as CostPerRunBar.
+    label: p.jenkinsBuildId ? `#${p.jenkinsBuildId}` : `run ${i + 1}`,
     fullDate: formatDateTime(p.date),
     build: p.jenkinsBuildId,
     rate: p.acceptanceRate === null ? null : Math.round(p.acceptanceRate * 100),

@@ -11,7 +11,6 @@ import {
 import type { SavingsSeriesPoint } from "../types/savings";
 import { chartColors } from "../lib/colors";
 import {
-  formatDateShort,
   formatDateTime,
   formatUSD,
   formatUSDAxis,
@@ -44,12 +43,13 @@ export interface AreaPoint {
 }
 
 export function buildAreaData(series: SavingsSeriesPoint[]): AreaPoint[] {
-  return series.map((p) => {
+  return series.map((p, i) => {
     const actual = toNumber(p.actual);
     const baseline = toNumber(p.baseline);
     const savings = toNumber(p.savings); // baseline − actual, signed
     return {
-      label: formatDateShort(p.date),
+      // X axis = Jenkins build (each point is one CI run); same label as CostPerRunBar.
+      label: p.jenkinsBuildId ? `#${p.jenkinsBuildId}` : `run ${i + 1}`,
       fullDate: formatDateTime(p.date),
       build: p.jenkinsBuildId,
       actual,
