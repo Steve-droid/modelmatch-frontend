@@ -83,7 +83,7 @@ function TrendTooltip({
       </div>
       {d.rate !== null && (
         <div className={`mt-0.5 ${banks ? "text-banked" : "text-risk"}`}>
-          {banks ? "banks savings" : "below threshold"}
+          {banks ? "savings count" : "below threshold"}
         </div>
       )}
     </TooltipBox>

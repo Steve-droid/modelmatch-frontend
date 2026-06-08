@@ -71,7 +71,7 @@ describe("KpiCard", () => {
 describe("QualityPill", () => {
   it("labels the three quality states distinctly", () => {
     const { rerender } = render(<QualityPill qualityOk={true} />);
-    expect(screen.getByText("Banked")).toBeInTheDocument();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
     rerender(<QualityPill qualityOk={false} />);
     expect(screen.getByText("Quality risk")).toBeInTheDocument();
     rerender(<QualityPill qualityOk={null} />);
@@ -134,7 +134,7 @@ describe("Dashboard (overspend)", () => {
     await screen.findByText("Cumulative saved");
 
     // switch to project 2 (savings still loading)
-    fireEvent.change(screen.getByLabelText("Select project"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Select CI-Agent"), { target: { value: "2" } });
 
     // project 1's numbers must disappear immediately — not linger under project 2
     await waitFor(() =>

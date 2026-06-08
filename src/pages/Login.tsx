@@ -3,6 +3,7 @@ import { Loader2, LogIn } from "lucide-react";
 import { login } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
+import { VALUE_PROP } from "../lib/valueProp";
 
 // Sign-in screen. Exchanges email + password for a JWT, persists it, then hands off
 // to the dashboard. Compact dark card in the Command-Center language — not a landing
@@ -43,7 +44,7 @@ export function Login({ onAuthed }: { onAuthed: () => void }) {
           </span>
           <div className="leading-tight">
             <div className="font-semibold tracking-tight">ModelMatch</div>
-            <div className="text-xs text-faint">Sign in to your savings dashboard</div>
+            <div className="text-xs text-faint">{VALUE_PROP.headline}</div>
           </div>
         </div>
 

@@ -80,8 +80,9 @@ export function RecommenderForm({
         <div className="leading-tight">
           <div className="text-sm font-semibold">Set up your code-review agent</div>
           <div className="text-xs text-faint">
-            Run a code-quality and security review on every CI run. ModelMatch picks a
-            cost-effective model from the benchmark catalog — no LLM in the ranking.
+            ModelMatch recommends a cost-effective model to review your pull requests in CI,
+            then proves it's good enough by counting the savings against a premium baseline —
+            no LLM in the ranking.
           </div>
         </div>
       </div>
@@ -104,7 +105,7 @@ export function RecommenderForm({
           onChange={(v) => setBudget(v as BudgetSensitivity)}
         />
         <Segmented
-          label="Agent speed"
+          label="CI-Agent speed"
           options={LATENCIES}
           value={latency}
           onChange={(v) => setLatency(v as LatencyNeed | "any")}

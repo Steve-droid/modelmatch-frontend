@@ -63,7 +63,7 @@ export function ProjectActions({
     <div className="relative inline-flex" ref={menuRef}>
       <button
         onClick={() => setMenuOpen((o) => !o)}
-        aria-label="Project actions"
+        aria-label="CI-Agent actions"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         className="flex items-center gap-1 rounded-md border border-border bg-panel px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
@@ -81,7 +81,7 @@ export function ProjectActions({
           <MenuItem icon={<Pencil size={13} />} label="Re-pick model" onClick={() => open("repick")} />
           <MenuItem
             icon={<Trash2 size={13} />}
-            label="Delete project"
+            label="Delete CI-Agent"
             danger
             onClick={() => open("delete")}
           />
@@ -340,7 +340,7 @@ function DeleteConfirm({
           className="flex items-center gap-2 rounded-md bg-risk px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-          Delete project
+          Delete CI-Agent
         </button>
       </div>
     </div>

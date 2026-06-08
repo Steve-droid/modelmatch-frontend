@@ -22,7 +22,7 @@ export function isValidJenkinsUrl(value: string): boolean {
 const CRED_IDS = [
   {
     id: "modelmatch-model-api-key",
-    desc: "your provider API key (BYOK) — the agent reads it; ModelMatch never sees it",
+    desc: "your provider API key (BYOK) — the CI-Agent reads it; ModelMatch never sees it",
   },
   {
     id: "modelmatch-ci-token",

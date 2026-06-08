@@ -42,10 +42,12 @@ function initialProjectParam(): number | null {
 export function Dashboard({
   initialProjectId,
   onNewProject,
+  onHome,
   onUnauthorized,
 }: {
   initialProjectId?: number | null;
   onNewProject?: () => void;
+  onHome?: () => void;
   onUnauthorized?: () => void;
 }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -146,6 +148,7 @@ export function Dashboard({
         activeProject={activeProject}
         onProject={setProjectId}
         onNewProject={onNewProject}
+        onHome={onHome}
         onChanged={handleChanged}
         onDeleted={handleDeleted}
         onUnauthorized={handleUnauthorized}
@@ -160,7 +163,7 @@ export function Dashboard({
         )}
         {noProjects && (
           <div className="card text-sm text-muted">
-            No projects yet. Create one from a recommendation to start tracking savings.
+            No CI-Agents yet. Create one from a recommendation to start tracking savings.
           </div>
         )}
 
@@ -188,7 +191,7 @@ export function Dashboard({
                       sub={
                         <>
                           {k.savedPct != null ? `${formatPct(k.savedPct)} vs baseline` : "—"}{" "}
-                          · {k.bankedRuns} banked
+                          · {k.bankedRuns} saved
                           {k.qualityRiskRuns > 0 && (
                             <span className="mt-0.5 block text-unrated">
                               {formatUSD(k.qualityRisk)} excluded as quality risk
@@ -226,7 +229,7 @@ export function Dashboard({
                       countTo={k.runsCount}
                       format={(n) => String(Math.round(n))}
                       icon={<GitBranch size={16} />}
-                      sub={`${k.bankedRuns} banked · ${k.qualityRiskRuns} risk · ${k.unratedRuns} unrated`}
+                      sub={`${k.bankedRuns} saved · ${k.qualityRiskRuns} risk · ${k.unratedRuns} unrated`}
                     />
                   </section>
 
@@ -265,6 +268,7 @@ function Header({
   activeProject,
   onProject,
   onNewProject,
+  onHome,
   onChanged,
   onDeleted,
   onUnauthorized,
@@ -277,6 +281,7 @@ function Header({
   activeProject: Project | null;
   onProject: (id: number) => void;
   onNewProject?: () => void;
+  onHome?: () => void;
   onChanged: () => void;
   onDeleted: (deletedId: number) => void;
   onUnauthorized?: () => void;
@@ -288,10 +293,17 @@ function Header({
     <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
-            <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
-          </span>
-          <span className="font-semibold tracking-tight">ModelMatch</span>
+          <button
+            onClick={onHome}
+            disabled={!onHome}
+            aria-label="Home"
+            className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+              <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
+            </span>
+            <span className="font-semibold tracking-tight">ModelMatch</span>
+          </button>
           {projectId != null && projects.length > 0 && (
             <ProjectSwitcher
               projects={projects}
@@ -326,7 +338,7 @@ function Header({
               className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
             >
               <Plus size={13} />
-              New project
+              New CI-Agent
             </button>
           )}
           <div className="flex items-center rounded-md border border-border bg-panel p-0.5">
