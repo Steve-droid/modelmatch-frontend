@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Coins, Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { login } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
+import markUrl from "../assets/brand/modelmatch-mark.svg";
 
 // Sign-in screen. Exchanges email + password for a JWT, persists it, then hands off
 // to the dashboard. Compact dark card in the Command-Center language — not a landing
@@ -37,8 +38,8 @@ export function Login({ onAuthed }: { onAuthed: () => void }) {
     <div className="flex min-h-full items-center justify-center px-4">
       <div className="card w-full max-w-sm">
         <div className="mb-5 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/20 text-accent">
-            <Coins size={17} />
+          <span className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel-2">
+            <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
           </span>
           <div className="leading-tight">
             <div className="font-semibold tracking-tight">ModelMatch</div>

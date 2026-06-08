@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Coins } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
+import markUrl from "../assets/brand/modelmatch-mark.svg";
 import type { RecommendationResult } from "../types/recommend";
 import { createProject, type CreateProjectInput } from "../api/projects";
 import { connectJenkins } from "../api/jenkins";
@@ -58,8 +59,8 @@ export function Onboarding({
       <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/20 text-accent">
-              <Coins size={16} />
+            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+              <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
             </span>
             <span className="font-semibold tracking-tight">ModelMatch</span>
             <span className="text-xs text-faint">New project</span>
