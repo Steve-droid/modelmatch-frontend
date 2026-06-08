@@ -2,12 +2,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import "./index.css";
-import { Dashboard } from "./pages/Dashboard";
+import { App } from "./App";
 
-// S14: the savings dashboard is the first real screen. Routing + login land in S15;
-// for now the app boots straight into the dashboard (project from ?project=).
+// S15: an auth gate now fronts the app — Login → savings dashboard + grounded chat,
+// with a project switcher. The token lives in localStorage (mm_token).
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Dashboard />
+    <App />
   </StrictMode>,
 );

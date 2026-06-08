@@ -14,6 +14,10 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
 /** Raised for any non-2xx response, carrying the HTTP status so callers can branch. */
 export class ApiError extends Error {
   constructor(
@@ -25,23 +29,40 @@ export class ApiError extends Error {
   }
 }
 
+// Turn a non-2xx response into an ApiError carrying the backend's `detail` (if any).
+async function toApiError(res: Response): Promise<ApiError> {
+  let detail = res.statusText;
+  try {
+    const body = await res.json();
+    if (body?.detail) detail = body.detail;
+  } catch {
+    /* non-JSON error body — keep the status text */
+  }
+  return new ApiError(res.status, detail);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Generic GET: `<T>` is the expected response shape — the caller names it
 // (e.g. apiGet<SavingsResponse>(...)) and gets a typed result back.
 export async function apiGet<T>(path: string): Promise<T> {
-  const token = getToken();
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: authHeaders(),
   });
+  if (!res.ok) throw await toApiError(res);
+  return (await res.json()) as T;
+}
 
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      if (body?.detail) detail = body.detail;
-    } catch {
-      /* non-JSON error body — keep the status text */
-    }
-    throw new ApiError(res.status, detail);
-  }
+// Generic POST: JSON body + Bearer auth, same ApiError contract as apiGet.
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${config.apiBaseUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw await toApiError(res);
   return (await res.json()) as T;
 }

@@ -1,4 +1,9 @@
 import type { SavingsResponse, SavingsSeriesPoint } from "../types/savings";
+import type {
+  ChatAnswerResponse,
+  ChatHistoryResponse,
+} from "../types/chat";
+import type { Project } from "../types/project";
 
 // A representative dashboard payload for component tests: a banked run, a quality-risk
 // run (excluded from the headline but present), and an unrated run.
@@ -98,6 +103,80 @@ export const savingsFixture: SavingsResponse = {
       findingsCount: 1,
     },
   ],
+};
+
+// The user's projects (for the switcher). Two so the dropdown variant renders.
+export const projectsFixture: Project[] = [
+  {
+    id: 1,
+    name: "acme-api",
+    userId: 1,
+    selectedOptionId: 10,
+    selectedOptionModel: "claude-haiku-4-5",
+    baselineModelId: 20,
+    baselineModel: "claude-sonnet-4-5",
+    baselineVendor: "Anthropic",
+  },
+  {
+    id: 2,
+    name: "billing-svc",
+    userId: 1,
+    selectedOptionId: 11,
+    selectedOptionModel: "gemini-2.5-flash",
+    baselineModelId: 20,
+    baselineModel: "claude-sonnet-4-5",
+    baselineVendor: "Anthropic",
+  },
+];
+
+// Chat history: the server-seeded "explain my spend" opener (with a savings trace)
+// as the first assistant message — the FE renders it, never generates it.
+export const chatHistoryFixture: ChatHistoryResponse = {
+  messages: [
+    {
+      id: 1,
+      role: "assistant",
+      text: "You've banked $0.045 vs your Sonnet baseline across 3 CI runs — about 64% saved. Quality is holding at 86% acceptance.",
+      createdAt: "2026-06-06T10:05:00Z",
+      retrievalTrace: [
+        {
+          kind: "savings",
+          ref: "savings:project",
+          snippet: "cumulative saved $0.045 · acceptance 86%",
+        },
+      ],
+    },
+  ],
+};
+
+// A grounded answer to a follow-up, citing a catalog row + the savings snapshot.
+export const chatAnswerFixture: ChatAnswerResponse = {
+  answer:
+    "Claude Haiku 4.5 is your cheapest passing model at $0.0015/run; Sonnet would cost ~$0.0042/run for the same review.",
+  ok: true,
+  refused: false,
+  retrievalTrace: [
+    {
+      kind: "benchmark_result",
+      ref: "chat_catalog:42",
+      snippet: "claude-haiku-4-5 · ci_review 0.71 · $0.80/Mtok",
+    },
+    {
+      kind: "savings",
+      ref: "savings:project",
+      snippet: "actual $0.0015/run vs baseline $0.0042/run",
+    },
+  ],
+  debug: null,
+};
+
+// An honest out-of-scope refusal (ok=false, refused=true, no trace).
+export const chatRefusalFixture: ChatAnswerResponse = {
+  answer: "I can't answer that from your savings or catalog data.",
+  ok: false,
+  refused: true,
+  retrievalTrace: [],
+  debug: null,
 };
 
 // An overspend point/run: the recommended model cost MORE than baseline (negative
