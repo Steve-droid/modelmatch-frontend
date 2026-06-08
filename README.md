@@ -23,10 +23,13 @@ The browser-facing UI for ModelMatch — usable without a walkthrough.
 
 Key features:
 
-- **Recommender form** — task-type checkboxes, a quality↔cost slider, a latency toggle, and an optional
-  free-text box that **keyword pre-fills** the form (the user confirms) → a pick result.
-- **Project + Jenkins setup** — connect a Jenkins job with a BYOK key (stored server-side as refs) and
-  copy the generated CI stage snippet.
+- **Recommender form** — the onboarding form scoped to the **`ci_review`** task (the proof path), shown
+  as a fixed task pill with **budget** and **agent-speed (latency)** selectors → a pick result. The
+  deterministic backend recommender also supports other task types + a keyword pre-fill endpoint; the FE
+  doesn't surface those yet.
+- **Project + Jenkins setup** — an onboarding wizard: pick → create project → connect a Jenkins job by
+  **base URL + job name only** (no secrets sent — the agent reads the BYOK key + CI token from the
+  user's own Jenkins credentials) → copy the generated CI stage snippet with its **one-time CI token**.
 - **Savings dashboard (centerpiece)** — KPI cards with sparklines, an actual-vs-baseline area chart
   (shaded gap = savings), cost/run bars colored by quality, token usage, a quality trend, and a runs
   table. Dark-mode default, monospace numbers.
@@ -50,7 +53,7 @@ pages).
 | **Charts / UI**      | Recharts · Tailwind CSS (dark-mode default) |
 | **Containerization** | Docker (multi-stage, non-root) · nginx (static serving) → ECR |
 | **CI/CD**            | Jenkins — its own pipeline (8 stages); two-job CI (mock / live-gated) |
-| **Testing**          | Vitest (unit) · Playwright (one happy-path e2e) |
+| **Testing**          | Vitest (unit) · Playwright happy-path e2e *(planned, S17)* |
 | **Config**           | env-driven via templated `/config.js` / `import.meta.env` |
 
 ## Repository Structure
@@ -58,9 +61,11 @@ pages).
 ```
 modelmatch-frontend/
 ├── src/
-│   ├── pages/          # Login, Recommend form, Project, Jenkins setup, Savings dashboard, Chat
-│   ├── components/     # shared UI components
+│   ├── pages/          # Login · Onboarding (recommender form → pick → project → Jenkins) · Dashboard
+│   ├── components/     # dashboard widgets (KpiCard, SavingsAreaChart, RunsTable, QualityTrend, …),
+│   │                   #   the ChatPanel + RetrievalTraceDetail, ProjectSwitcher, onboarding/
 │   ├── api/            # backend API client
+│   ├── lib/            # shared helpers
 │   ├── types/          # shared TypeScript types
 │   └── main.tsx        # app entrypoint
 ├── public/             # static assets + templated config.js
@@ -79,18 +84,25 @@ modelmatch-frontend/
 
 ## Getting Started
 
-> **Status: scaffolding (S1).** The Vite app, Tailwind/Recharts setup, and Dockerfile land with the
-> S1 scaffold; the commands below are the intended workflow.
+> **Status: built through S15c** (frontend **v0.4.0**) — login + auth gate, the savings dashboard +
+> grounded chat panel (S15a), and the recommender / project / Jenkins onboarding wizard (S15b/S15c) are
+> in. **Project lifecycle** (edit / re-pick, delete, discard-on-abandon) is **[in progress]** (S15d).
 
 ```bash
-cp .env.example .env   # set VITE_API_BASE_URL etc.
+cp .env.example .env   # set VITE_API_BASE_URL (defaults to http://localhost:8000)
 npm install
-npm run dev            # Vite dev server
-npm run build          # production build (served by nginx in the image)
+npm run dev            # Vite dev server on :5173
+npm run build          # tsc + production build (served by nginx in the image)
+npm run typecheck      # tsc --noEmit
 npm run test           # Vitest
 ```
 
-Or bring up the whole stack (FE + BE + DB) from the repo root with `docker compose up`.
+Point `VITE_API_BASE_URL` at a running backend (see the backend README / the
+[runbook](../modelmatch-backend/docs/runbook.md) for `docker compose up`). In production the API base
+URL is injected at runtime via a templated `/config.js` served by nginx — nothing is hardcoded.
+
+**New here?** The cross-cutting [Runbook & Demo Walkthrough](../modelmatch-backend/docs/runbook.md)
+covers the product story, the two-surface model rule, env reference, and an end-to-end demo script.
 
 ## CI/CD Pipeline
 
@@ -116,6 +128,10 @@ graph LR
 - Branching: `feature/<story-id>-<desc>` → PR → `main` (protected). Conventional Commits; SemVer tags.
 
 ## Release History
+
+SemVer tags on `main`. Current: **v0.4.0** (recommender / project / Jenkins onboarding + S15c
+alignment). Earlier: v0.3.0 login + dashboard + chat (S15a) · v0.2.0 first savings dashboard (S14).
+Full log: `git tag`.
 
 - 0.0.1 — Initial scaffold (repo skeleton + stub entrypoint).
 
