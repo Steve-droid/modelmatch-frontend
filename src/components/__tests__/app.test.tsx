@@ -32,7 +32,7 @@ describe("App routing", () => {
     setToken("jwt");
     vi.mocked(listProjects).mockResolvedValue([]);
     render(<App />);
-    expect(await screen.findByText(/Find a cost-effective model/)).toBeInTheDocument();
+    expect(await screen.findByText(/Set up your code-review agent/)).toBeInTheDocument();
   });
 
   it("lands on the dashboard when the user already has projects", async () => {

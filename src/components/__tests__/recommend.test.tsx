@@ -6,21 +6,18 @@ import { RecommendationView } from "../onboarding/RecommendationView";
 import { ApiError } from "../../api/client";
 import {
   recommendationFixture,
-  prefillFixture,
   createdProjectFixture,
 } from "../../test/fixtures";
 
 vi.mock("../../api/recommend", () => ({
-  postPrefill: vi.fn(),
   postRecommendation: vi.fn(),
 }));
-import { postPrefill, postRecommendation } from "../../api/recommend";
+import { postRecommendation } from "../../api/recommend";
 
 vi.mock("../../api/projects", () => ({ createProject: vi.fn() }));
 import { createProject } from "../../api/projects";
 
 beforeEach(() => {
-  vi.mocked(postPrefill).mockReset();
   vi.mocked(postRecommendation).mockReset();
   vi.mocked(createProject).mockReset();
 });
@@ -42,27 +39,31 @@ describe("RecommenderForm", () => {
     });
   });
 
-  it("applies prefill suggestions and shows the matched terms", async () => {
-    vi.mocked(postPrefill).mockResolvedValue(prefillFixture);
-    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
-    render(<RecommenderForm onResult={vi.fn()} />);
+  // The "Agent speed" control relabels the latency options, but the backend payload
+  // contract is null/"low"/"medium"/"high" — prove each label maps to its wire value.
+  it.each([
+    ["Any", null],
+    ["Fast", "low"],
+    ["Balanced", "medium"],
+    ["Quality-first", "high"],
+  ] as const)(
+    'agent-speed "%s" sends latencyNeed %j',
+    async (label, wireValue) => {
+      vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+      render(<RecommenderForm onResult={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText("Describe your use case"), {
-      target: { value: "cheap fast coding agent" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /prefill/i }));
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
 
-    expect(await screen.findByText(/Matched: agent, cheap, fast/)).toBeInTheDocument();
-    // prefill applies budget + latency only; task type stays ci_review (S15b scope)
-    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
-    await waitFor(() =>
-      expect(postRecommendation).toHaveBeenCalledWith({
-        taskTypes: ["ci_review"],
-        budgetSensitivity: "high",
-        latencyNeed: "low",
-      }),
-    );
-  });
+      await waitFor(() =>
+        expect(postRecommendation).toHaveBeenCalledWith({
+          taskTypes: ["ci_review"],
+          budgetSensitivity: "high",
+          latencyNeed: wireValue,
+        }),
+      );
+    },
+  );
 
   it("shows an error when the recommendation request fails", async () => {
     vi.mocked(postRecommendation).mockRejectedValue(new ApiError(422, "No catalog rows match"));

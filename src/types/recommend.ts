@@ -50,11 +50,3 @@ export interface RecommendationResult {
   baseline: Baseline;
   shortlist: RecommendationOption[];
 }
-
-// POST /recommendations/prefill — free text → suggested fields (user confirms).
-export interface PrefillResult {
-  taskTypes: string[];
-  budgetSensitivity: BudgetSensitivity | null;
-  latencyNeed: LatencyNeed | null;
-  matchedTerms: string[];
-}

@@ -4,10 +4,7 @@ import type {
   ChatHistoryResponse,
 } from "../types/chat";
 import type { Project } from "../types/project";
-import type {
-  PrefillResult,
-  RecommendationResult,
-} from "../types/recommend";
+import type { RecommendationResult } from "../types/recommend";
 import type { CiSetup, JenkinsConnection } from "../types/ci";
 
 // A representative dashboard payload for component tests: a banked run, a quality-risk
@@ -246,13 +243,6 @@ export const recommendationFixture: RecommendationResult = {
   ],
 };
 
-export const prefillFixture: PrefillResult = {
-  taskTypes: ["agentic_coding"],
-  budgetSensitivity: "high",
-  latencyNeed: "low",
-  matchedTerms: ["agent", "cheap", "fast"],
-};
-
 // The project returned by POST /projects (created from the chosen option + baseline).
 export const createdProjectFixture: Project = {
   id: 7,
@@ -270,8 +260,6 @@ export const jenkinsConnectionFixture: JenkinsConnection = {
   baseUrl: "https://jenkins.example.com",
   jobName: "acme-api/main",
   status: "configured",
-  jenkinsTokenRef: "secret://jenkins-token/7",
-  modelApiKeyRef: "secret://model-key/7",
 };
 
 // CI setup with the mint-once token present (first fetch) …

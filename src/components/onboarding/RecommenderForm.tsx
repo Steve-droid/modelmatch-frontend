@@ -1,23 +1,34 @@
 import { useState } from "react";
-import { Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import type {
   BudgetSensitivity,
   LatencyNeed,
   RecommendationResult,
 } from "../../types/recommend";
-import { postPrefill, postRecommendation } from "../../api/recommend";
+import { postRecommendation } from "../../api/recommend";
 import { ApiError } from "../../api/client";
 
 // S15b onboarding is scoped to ci_review — the product's proof path (the agent
 // reviews PR diffs), where the catalog + baseline (Sonnet-class) are sound. Other
 // task types (e.g. agentic_coding) are hidden until their catalog/baseline story is
-// corrected backend-side. The recommender itself still supports them.
-const TASK_TYPES = [{ value: "ci_review", label: "CI code review" }];
-const BUDGETS: BudgetSensitivity[] = ["low", "medium", "high"];
-const LATENCIES: (LatencyNeed | "any")[] = ["any", "low", "medium", "high"];
+// corrected backend-side, so the task is shown as a fixed pill, not a selector. The
+// recommender itself still supports them; the form always sends ["ci_review"].
+const BUDGETS: { value: BudgetSensitivity; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
 
-// Structured recommender form (+ an optional free-text prefill box that suggests
-// fields the user confirms). Submits to POST /recommendations and hands the ranked
+// "Agent speed" preference → backend `latencyNeed` payload. The visible labels are
+// user-facing; the wire values (null/"low"/"medium"/"high") are the backend contract.
+const LATENCIES: { value: LatencyNeed | "any"; label: string }[] = [
+  { value: "any", label: "Any" },
+  { value: "low", label: "Fast" },
+  { value: "medium", label: "Balanced" },
+  { value: "high", label: "Quality-first" },
+];
+
+// Structured recommender form. Submits to POST /recommendations and hands the ranked
 // result up via onResult. No LLM on this path.
 export function RecommenderForm({
   onResult,
@@ -26,45 +37,19 @@ export function RecommenderForm({
   onResult: (r: RecommendationResult) => void;
   onUnauthorized?: () => void;
 }) {
-  const [taskTypes, setTaskTypes] = useState<string[]>(["ci_review"]);
+  // Fixed for now (onboarding is scoped to ci_review); kept as state so the payload
+  // contract stays explicit and the recommender can re-expose task choice later.
+  const [taskTypes] = useState<string[]>(["ci_review"]);
   const [budget, setBudget] = useState<BudgetSensitivity>("high");
   const [latency, setLatency] = useState<LatencyNeed | "any">("any");
 
-  const [prefillText, setPrefillText] = useState("");
-  const [prefilling, setPrefilling] = useState(false);
-  const [matchedTerms, setMatchedTerms] = useState<string[] | null>(null);
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function toggleTask(value: string) {
-    setTaskTypes((prev) =>
-      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value],
-    );
-  }
 
   function handleApiError(e: unknown) {
     if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
     else if (e instanceof ApiError) setError(e.message);
     else setError("Could not reach the backend.");
-  }
-
-  async function handlePrefill() {
-    if (!prefillText.trim() || prefilling) return;
-    setPrefilling(true);
-    setError(null);
-    try {
-      const res = await postPrefill(prefillText.trim());
-      // Only budget + latency are applied — task type is fixed to ci_review for S15b,
-      // so we don't let free text switch it to a hidden/unsupported task.
-      if (res.budgetSensitivity) setBudget(res.budgetSensitivity);
-      setLatency(res.latencyNeed ?? "any");
-      setMatchedTerms(res.matchedTerms);
-    } catch (e) {
-      handleApiError(e);
-    } finally {
-      setPrefilling(false);
-    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -93,82 +78,34 @@ export function RecommenderForm({
           <Sparkles size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Find a cost-effective model</div>
+          <div className="text-sm font-semibold">Set up your code-review agent</div>
           <div className="text-xs text-faint">
-            Deterministic ranking over the benchmark catalog — no LLM in the pick.
+            Run a code-quality and security review on every CI run. ModelMatch picks a
+            cost-effective model from the benchmark catalog — no LLM in the ranking.
           </div>
         </div>
       </div>
 
-      {/* free-text prefill */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted">
-          Describe your use case <span className="text-faint">(optional)</span>
-        </label>
-        <div className="flex gap-2">
-          <input
-            value={prefillText}
-            onChange={(e) => setPrefillText(e.target.value)}
-            placeholder="e.g. cheap code review agent for our CI"
-            aria-label="Describe your use case"
-            className="flex-1 rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={handlePrefill}
-            disabled={!prefillText.trim() || prefilling}
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-panel-2 px-3 py-2 text-xs font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
-          >
-            {prefilling ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
-            Prefill
-          </button>
-        </div>
-        {matchedTerms && (
-          <p className="text-xs text-faint">
-            {matchedTerms.length
-              ? `Matched: ${matchedTerms.join(", ")} — confirm or edit below.`
-              : "No keywords matched — fill the fields manually."}
-          </p>
-        )}
+      {/* task — fixed to CI code review (not selectable); shown as a static pill */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="font-medium text-muted">Task</span>
+        <span className="rounded-md border border-accent/40 bg-accent/10 px-2.5 py-1 font-medium text-gray-200">
+          Code-quality &amp; security review
+        </span>
       </div>
 
-      {/* task types */}
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-medium text-muted">Task types</legend>
-        <div className="flex flex-wrap gap-2">
-          {TASK_TYPES.map((o) => {
-            const on = taskTypes.includes(o.value);
-            return (
-              <button
-                key={o.value}
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                onClick={() => toggleTask(o.value)}
-                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  on
-                    ? "border-accent/50 bg-accent/15 text-gray-100"
-                    : "border-border bg-panel-2 text-muted hover:text-gray-200"
-                }`}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* budget + latency */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* budget + latency — two segmented controls aligned on the same baseline.
+          Agent speed (4 options) gets a wider column so its labels fit on one line. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.35fr] sm:items-start">
         <Segmented
           label="Budget sensitivity"
-          options={BUDGETS.map((b) => ({ value: b, label: b }))}
+          options={BUDGETS}
           value={budget}
           onChange={(v) => setBudget(v as BudgetSensitivity)}
         />
         <Segmented
-          label="Latency need"
-          options={LATENCIES.map((l) => ({ value: l, label: l === "any" ? "Any" : l }))}
+          label="Agent speed"
+          options={LATENCIES}
           value={latency}
           onChange={(v) => setLatency(v as LatencyNeed | "any")}
         />
@@ -206,13 +143,13 @@ function Segmented({
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-muted">{label}</span>
-      <div className="flex items-center rounded-md border border-border bg-panel-2 p-0.5">
+      <div className="flex min-h-[2.25rem] items-stretch rounded-md border border-border bg-panel-2 p-0.5">
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`flex-1 rounded px-2 py-1 text-xs font-medium capitalize transition-colors ${
+            className={`flex min-w-0 flex-1 items-center justify-center rounded px-2 text-center text-xs font-medium leading-tight transition-colors ${
               value === o.value
                 ? "bg-panel text-gray-100"
                 : "text-muted hover:text-gray-200"
