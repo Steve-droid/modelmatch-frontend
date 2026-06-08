@@ -118,6 +118,7 @@ export const projectsFixture: Project[] = [
     baselineModelId: 20,
     baselineModel: "claude-sonnet-4-5",
     baselineVendor: "Anthropic",
+    setupComplete: true,
   },
   {
     id: 2,
@@ -128,6 +129,7 @@ export const projectsFixture: Project[] = [
     baselineModelId: 20,
     baselineModel: "claude-sonnet-4-5",
     baselineVendor: "Anthropic",
+    setupComplete: true,
   },
 ];
 
@@ -253,6 +255,7 @@ export const createdProjectFixture: Project = {
   baselineModelId: 9,
   baselineModel: "Claude Sonnet 4.5",
   baselineVendor: "Anthropic",
+  setupComplete: false,
 };
 
 export const jenkinsConnectionFixture: JenkinsConnection = {

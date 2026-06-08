@@ -14,7 +14,6 @@ type Phase = "loading" | "onboarding" | "dashboard";
 export function App() {
   const [authed, setAuthed] = useState(() => getToken() !== null);
   const [phase, setPhase] = useState<Phase>("loading");
-  const [hasProjects, setHasProjects] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
 
   const handleUnauthorized = useCallback(() => {
@@ -30,7 +29,6 @@ export function App() {
     listProjects()
       .then((list) => {
         if (!live) return;
-        setHasProjects(list.length > 0);
         setPhase(list.length > 0 ? "dashboard" : "onboarding");
       })
       .catch((e: unknown) => {
@@ -58,10 +56,13 @@ export function App() {
     return (
       <Onboarding
         onUnauthorized={handleUnauthorized}
-        onCancel={hasProjects ? () => setPhase("dashboard") : undefined}
+        // Always allow returning to the dashboard — with defer-create a project may
+        // already exist mid-wizard (e.g. a CI-setup failure after create), so the user
+        // must never be trapped on the wizard. An empty dashboard just shows the
+        // "no projects yet" state.
+        onCancel={() => setPhase("dashboard")}
         onDone={(projectId) => {
           setActiveProjectId(projectId);
-          setHasProjects(true);
           setPhase("dashboard");
         }}
       />

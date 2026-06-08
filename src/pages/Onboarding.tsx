@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ArrowLeft, Check, Coins } from "lucide-react";
 import type { RecommendationResult } from "../types/recommend";
+import { createProject, type CreateProjectInput } from "../api/projects";
+import { connectJenkins } from "../api/jenkins";
 import { RecommenderForm } from "../components/onboarding/RecommenderForm";
 import { RecommendationView } from "../components/onboarding/RecommendationView";
 import { JenkinsConnectForm } from "../components/onboarding/JenkinsConnectForm";
@@ -13,9 +15,13 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "cisetup", label: "CI setup" },
 ];
 
-// The new-project onboarding flow: recommend → pick → create project → connect
-// Jenkins/BYOK → CI snippet → dashboard. Reachable on first login (no projects) or via
-// "New project" when projects already exist (onCancel returns to the dashboard).
+// The new-project onboarding flow: recommend → pick → connect Jenkins → CI snippet →
+// dashboard. DEFER-CREATE: the project is NOT created at the pick step — the pick is
+// held as a draft and the project is created at the Jenkins step's Continue (once the
+// URL/job are valid), so abandoning the wizard early never leaves an orphaned empty
+// project. If the connect (or later CI-setup) fails *after* create, the project is
+// kept (projectId is set) and a retry just re-connects — no auto-delete. Reachable on
+// first login (no projects) or via "New project" (onCancel returns to the dashboard).
 export function Onboarding({
   onDone,
   onCancel,
@@ -27,9 +33,25 @@ export function Onboarding({
 }) {
   const [step, setStep] = useState<Step>("recommend");
   const [result, setResult] = useState<RecommendationResult | null>(null);
+  const [draft, setDraft] = useState<CreateProjectInput | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
 
   const activeIndex = STEPS.findIndex((s) => s.key === step);
+
+  // Jenkins-step Continue: create the project now (once, if not already created) then
+  // connect it. Errors propagate to JenkinsConnectForm's inline error/401 handling; a
+  // partial success (created, connect failed) leaves projectId set so retry re-connects
+  // the same project instead of creating a second one.
+  async function handleConnect(input: { baseUrl: string; jobName: string }) {
+    let pid = projectId;
+    if (pid == null) {
+      const project = await createProject(draft!);
+      pid = project.id;
+      setProjectId(pid);
+    }
+    await connectJenkins(pid, input);
+    setStep("cisetup");
+  }
 
   return (
     <div className="min-h-full">
@@ -72,19 +94,19 @@ export function Onboarding({
               <RecommendationView
                 result={result}
                 onUnauthorized={onUnauthorized}
-                onCreated={(project) => {
-                  setProjectId(project.id);
+                submitLabel="Continue"
+                onSubmit={async (pick) => {
+                  setDraft(pick); // defer-create: hold the pick, create at Jenkins step
                   setStep("jenkins");
                 }}
               />
             </div>
           ))}
 
-        {step === "jenkins" && projectId != null && (
+        {step === "jenkins" && draft != null && (
           <JenkinsConnectForm
-            projectId={projectId}
             onUnauthorized={onUnauthorized}
-            onConnected={() => setStep("cisetup")}
+            onSubmit={handleConnect}
           />
         )}
 

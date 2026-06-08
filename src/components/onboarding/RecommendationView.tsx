@@ -4,8 +4,7 @@ import type {
   RecommendationOption,
   RecommendationResult,
 } from "../../types/recommend";
-import type { Project } from "../../types/project";
-import { createProject } from "../../api/projects";
+import type { CreateProjectInput } from "../../api/projects";
 import { ApiError } from "../../api/client";
 
 function perMtok(value: string | null): string {
@@ -23,17 +22,22 @@ const isRunnable = (vendor: string) =>
   RUNNABLE_VENDORS.has(vendor.toLowerCase());
 
 // Shows the ranked result: comparability group, the selectable shortlist (suggested
-// pre-selected), the baseline, and a name → create-project step. On success it hands
-// the created project up via onCreated. POST /projects payload = chosen option +
-// baseline model id.
+// pre-selected), the baseline, and a name → submit step. The submit is caller-owned
+// (onSubmit) so this view serves both onboarding (defer-create: stash the pick, no API
+// yet) and edit/re-pick (PATCH the existing project). The pick payload = chosen option
+// + baseline model id + name; the persistence/advance is the parent's job.
 export function RecommendationView({
   result,
-  onCreated,
+  onSubmit,
   onUnauthorized,
+  submitLabel = "Create project",
+  initialName = "",
 }: {
   result: RecommendationResult;
-  onCreated: (project: Project) => void;
+  onSubmit: (pick: CreateProjectInput) => Promise<void>;
   onUnauthorized?: () => void;
+  submitLabel?: string;
+  initialName?: string;
 }) {
   const { baseline, comparabilityGroup, shortlist, suggested } = result;
 
@@ -46,7 +50,7 @@ export function RecommendationView({
     : selectable[0]?.recommendationOptionId;
 
   const [selectedId, setSelectedId] = useState<number | undefined>(defaultId);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,12 +61,11 @@ export function RecommendationView({
     setCreating(true);
     setError(null);
     try {
-      const project = await createProject({
+      await onSubmit({
         name: name.trim(),
         selectedOptionId: selectedId,
         baselineModelId: baseline.modelId,
       });
-      onCreated(project);
     } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
       else if (e instanceof ApiError) setError(e.message);
@@ -146,7 +149,7 @@ export function RecommendationView({
             className="flex shrink-0 items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-            Create project
+            {submitLabel}
           </button>
         </div>
         {error && (

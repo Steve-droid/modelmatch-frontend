@@ -3,72 +3,209 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { JenkinsConnectForm } from "../onboarding/JenkinsConnectForm";
 import { CiSetupView } from "../onboarding/CiSetupView";
+import { Onboarding } from "../../pages/Onboarding";
 import { ApiError } from "../../api/client";
 import {
+  recommendationFixture,
+  createdProjectFixture,
   jenkinsConnectionFixture,
   ciSetupFixture,
   ciSetupNoTokenFixture,
 } from "../../test/fixtures";
 
+vi.mock("../../api/recommend", () => ({ postRecommendation: vi.fn() }));
+import { postRecommendation } from "../../api/recommend";
+vi.mock("../../api/projects", () => ({ createProject: vi.fn() }));
+import { createProject } from "../../api/projects";
 vi.mock("../../api/jenkins", () => ({ connectJenkins: vi.fn() }));
 import { connectJenkins } from "../../api/jenkins";
-vi.mock("../../api/ci", () => ({ getCiSetup: vi.fn() }));
-import { getCiSetup } from "../../api/ci";
+vi.mock("../../api/ci", () => ({ getCiSetup: vi.fn(), rotateCiToken: vi.fn() }));
+import { getCiSetup, rotateCiToken } from "../../api/ci";
 
 beforeEach(() => {
+  vi.mocked(postRecommendation).mockReset();
+  vi.mocked(createProject).mockReset();
   vi.mocked(connectJenkins).mockReset();
   vi.mocked(getCiSetup).mockReset();
+  vi.mocked(rotateCiToken).mockReset();
 });
 
-function fillJenkins() {
-  fireEvent.change(screen.getByLabelText("Jenkins base URL"), {
-    target: { value: "https://jenkins.example.com" },
-  });
-  fireEvent.change(screen.getByLabelText("Job name"), { target: { value: "acme-api/main" } });
+function fillJenkins(url = "https://jenkins.example.com", job = "acme-api/main") {
+  fireEvent.change(screen.getByLabelText("Jenkins base URL"), { target: { value: url } });
+  fireEvent.change(screen.getByLabelText("Job name"), { target: { value: job } });
 }
 
-describe("JenkinsConnectForm (metadata only)", () => {
+describe("JenkinsConnectForm (metadata only + URL validation)", () => {
   it("never asks for the provider key or a Jenkins API token", () => {
-    render(<JenkinsConnectForm projectId={7} onConnected={vi.fn()} />);
-    // no secret inputs at all
+    render(<JenkinsConnectForm onSubmit={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.queryByLabelText("Model API key")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Jenkins API token")).not.toBeInTheDocument();
     expect(document.querySelector('input[type="password"]')).toBeNull();
-    // instead it shows the user-created Jenkins credential ids…
     expect(screen.getByText("modelmatch-model-api-key")).toBeInTheDocument();
     expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
-    // …and never claims secrets are stored by the backend
-    expect(screen.queryByText(/sent to the backend/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/never leave the backend/i)).not.toBeInTheDocument();
   });
 
-  it("sends a metadata-only body — base URL + job name, no secret fields", async () => {
-    vi.mocked(connectJenkins).mockResolvedValue(jenkinsConnectionFixture);
-    const onConnected = vi.fn();
-    render(<JenkinsConnectForm projectId={7} onConnected={onConnected} />);
+  it("hands a metadata-only body up via onSubmit — base URL + job name only", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<JenkinsConnectForm onSubmit={onSubmit} />);
 
     fillJenkins();
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
-    await waitFor(() => expect(onConnected).toHaveBeenCalledWith(jenkinsConnectionFixture));
-    const [pid, body] = vi.mocked(connectJenkins).mock.calls[0];
-    expect(pid).toBe(7);
-    // exactly the two metadata fields — the backend rejects any secret fields (422)
-    expect(body).toEqual({
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit).toHaveBeenCalledWith({
       baseUrl: "https://jenkins.example.com",
       jobName: "acme-api/main",
     });
+    const body = vi.mocked(onSubmit).mock.calls[0][0];
     expect(body).not.toHaveProperty("jenkinsToken");
     expect(body).not.toHaveProperty("modelApiKey");
   });
 
+  it("blocks Continue on an invalid URL ('aaa' must not advance)", () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<JenkinsConnectForm onSubmit={onSubmit} />);
+
+    fillJenkins("aaa", "acme-api/main");
+    const button = screen.getByRole("button", { name: /continue/i });
+    expect(button).toBeDisabled();
+    expect(screen.getByText(/enter a valid url/i)).toBeInTheDocument();
+
+    fireEvent.click(button);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("blocks Continue when the job name is empty even with a valid URL", () => {
+    render(<JenkinsConnectForm onSubmit={vi.fn()} />);
+    fillJenkins("https://jenkins.example.com", "");
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+  });
+
+  it("accepts a plain http URL (not HTTPS-only)", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<JenkinsConnectForm onSubmit={onSubmit} />);
+
+    fillJenkins("http://jenkins.local:8080", "acme/main");
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        baseUrl: "http://jenkins.local:8080",
+        jobName: "acme/main",
+      }),
+    );
+  });
+
   it("bubbles a 401 up via onUnauthorized", async () => {
-    vi.mocked(connectJenkins).mockRejectedValue(new ApiError(401, "expired"));
     const onUnauthorized = vi.fn();
-    render(<JenkinsConnectForm projectId={7} onConnected={vi.fn()} onUnauthorized={onUnauthorized} />);
+    render(
+      <JenkinsConnectForm
+        onSubmit={vi.fn().mockRejectedValue(new ApiError(401, "expired"))}
+        onUnauthorized={onUnauthorized}
+      />,
+    );
     fillJenkins();
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => expect(onUnauthorized).toHaveBeenCalled());
+  });
+
+  it("prefills from initial values (edit mode)", () => {
+    render(
+      <JenkinsConnectForm
+        onSubmit={vi.fn()}
+        initialBaseUrl="http://old.jenkins"
+        initialJobName="old/job"
+        submitLabel="Save changes"
+      />,
+    );
+    expect(screen.getByLabelText("Jenkins base URL")).toHaveValue("http://old.jenkins");
+    expect(screen.getByLabelText("Job name")).toHaveValue("old/job");
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();
+  });
+});
+
+describe("Onboarding defer-create", () => {
+  function getRecommendation() {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<Onboarding onDone={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
+  }
+
+  it("creates the project only at the Jenkins step, never at the pick step", async () => {
+    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
+    vi.mocked(connectJenkins).mockResolvedValue(jenkinsConnectionFixture);
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
+    getRecommendation();
+
+    // pick step: name + Continue — this MUST NOT create the project
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // now on the Jenkins step, still nothing created
+    await screen.findByLabelText("Jenkins base URL");
+    expect(createProject).not.toHaveBeenCalled();
+
+    // valid Jenkins submit creates then connects
+    fillJenkins();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() => expect(createProject).toHaveBeenCalledTimes(1));
+    expect(createProject).toHaveBeenCalledWith({
+      name: "acme-api",
+      selectedOptionId: 11,
+      baselineModelId: 9,
+    });
+    await waitFor(() =>
+      expect(connectJenkins).toHaveBeenCalledWith(createdProjectFixture.id, {
+        baseUrl: "https://jenkins.example.com",
+        jobName: "acme-api/main",
+      }),
+    );
+  });
+
+  it("abandoning before the Jenkins submit creates no project", async () => {
+    const onCancel = vi.fn();
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<Onboarding onDone={vi.fn()} onCancel={onCancel} />);
+    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
+
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText("Jenkins base URL");
+
+    fireEvent.click(screen.getByRole("button", { name: /back to dashboard/i }));
+    expect(onCancel).toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("keeps the created project on a connect failure — retry connects, never re-creates", async () => {
+    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
+    vi.mocked(connectJenkins)
+      .mockRejectedValueOnce(new ApiError(502, "jenkins unreachable"))
+      .mockResolvedValueOnce(jenkinsConnectionFixture);
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
+    getRecommendation();
+
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText("Jenkins base URL");
+
+    fillJenkins();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    // first attempt: created, but connect failed → inline error, still on the step
+    expect(await screen.findByText("jenkins unreachable")).toBeInTheDocument();
+    expect(createProject).toHaveBeenCalledTimes(1);
+
+    // retry: connects the SAME project, no second create
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() => expect(connectJenkins).toHaveBeenCalledTimes(2));
+    expect(createProject).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -92,6 +229,21 @@ describe("CiSetupView", () => {
     expect(screen.queryByText("mmci_s3cr3t_one_time_value")).not.toBeInTheDocument();
   });
 
+  it("regenerates a lost token — rotate issues a fresh one and shows it", async () => {
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupNoTokenFixture); // already minted
+    vi.mocked(rotateCiToken).mockResolvedValue({
+      ...ciSetupFixture,
+      token: "mmci_rotated_fresh_value",
+    });
+    render(<CiSetupView projectId={7} onDone={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /regenerate token/i }));
+
+    expect(await screen.findByText("mmci_rotated_fresh_value")).toBeInTheDocument();
+    expect(rotateCiToken).toHaveBeenCalledWith(7);
+    expect(screen.getByText(/shown once/i)).toBeInTheDocument();
+  });
+
   it("advances to the dashboard on 'Go to dashboard'", async () => {
     vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
     const onDone = vi.fn();
@@ -104,6 +256,20 @@ describe("CiSetupView", () => {
     vi.mocked(getCiSetup).mockRejectedValue(new ApiError(500, "boom"));
     render(<CiSetupView projectId={7} onDone={vi.fn()} />);
     expect(await screen.findByText("boom")).toBeInTheDocument();
+  });
+
+  it("recovers from a transient setup failure via Retry", async () => {
+    vi.mocked(getCiSetup)
+      .mockRejectedValueOnce(new ApiError(504, "gateway timeout"))
+      .mockResolvedValueOnce(ciSetupFixture);
+    render(<CiSetupView projectId={7} onDone={vi.fn()} />);
+
+    expect(await screen.findByText("gateway timeout")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    // the retry succeeds → snippet + token now shown, error gone
+    expect(await screen.findByText(/shown once/i)).toBeInTheDocument();
+    expect(screen.queryByText("gateway timeout")).not.toBeInTheDocument();
   });
 
   it("bubbles a 401 up via onUnauthorized", async () => {

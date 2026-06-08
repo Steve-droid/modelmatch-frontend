@@ -110,6 +110,16 @@ describe("Dashboard (overspend)", () => {
     expect(value.className).toContain("text-risk");
   });
 
+  it("badges a setup-incomplete project (no CI token yet)", async () => {
+    const incomplete = [{ ...projectsFixture[0], setupComplete: false }];
+    vi.mocked(getSavings).mockResolvedValue(savingsFixture);
+    vi.mocked(listProjects).mockResolvedValue(incomplete);
+    vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
+    const { Dashboard } = await import("../../pages/Dashboard");
+    render(<Dashboard />);
+    expect(await screen.findByText(/setup incomplete/i)).toBeInTheDocument();
+  });
+
   it("clears the previous project's numbers when switching projects", async () => {
     // Project 1 resolves; project 2 stays pending so we can observe the gap.
     vi.mocked(getSavings)
