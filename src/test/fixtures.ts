@@ -4,6 +4,11 @@ import type {
   ChatHistoryResponse,
 } from "../types/chat";
 import type { Project } from "../types/project";
+import type {
+  PrefillResult,
+  RecommendationResult,
+} from "../types/recommend";
+import type { CiSetup, JenkinsConnection } from "../types/ci";
 
 // A representative dashboard payload for component tests: a banked run, a quality-risk
 // run (excluded from the headline but present), and an unrated run.
@@ -177,6 +182,110 @@ export const chatRefusalFixture: ChatAnswerResponse = {
   refused: true,
   retrievalTrace: [],
   debug: null,
+};
+
+// A ranked recommendation: two shortlist options (Haiku suggested, Nova 2 Lite) within
+// one comparability group, plus the costed baseline. Decimal fields are JSON strings.
+export const recommendationFixture: RecommendationResult = {
+  profileId: 1,
+  comparabilityGroup: { benchmark: "CodeReviewBench", metric: "ci_review" },
+  suggested: {
+    recommendationOptionId: 11,
+    rank: 1,
+    model: "Claude Haiku 4.5",
+    modelId: 3,
+    vendor: "Anthropic",
+    benchmark: "CodeReviewBench",
+    metric: "ci_review",
+    score: "0.710000",
+    costPerMtok: "2.000000",
+    qualityNorm: "0.890000",
+    costNorm: "0.250000",
+    rankScore: "0.820000",
+    benchmarkResultId: 7,
+  },
+  baseline: {
+    model: "Claude Sonnet 4.5",
+    modelId: 9,
+    vendor: "Anthropic",
+    costPerMtok: "8.000000",
+    benchmarkResultId: 5,
+    selection: "configured",
+  },
+  shortlist: [
+    {
+      recommendationOptionId: 11,
+      rank: 1,
+      model: "Claude Haiku 4.5",
+      modelId: 3,
+      vendor: "Anthropic",
+      benchmark: "CodeReviewBench",
+      metric: "ci_review",
+      score: "0.710000",
+      costPerMtok: "2.000000",
+      qualityNorm: "0.890000",
+      costNorm: "0.250000",
+      rankScore: "0.820000",
+      benchmarkResultId: 7,
+    },
+    {
+      recommendationOptionId: 12,
+      rank: 2,
+      model: "Nova 2 Lite",
+      modelId: 4,
+      vendor: "Amazon",
+      benchmark: "CodeReviewBench",
+      metric: "ci_review",
+      score: "0.640000",
+      costPerMtok: "0.850000",
+      qualityNorm: "0.800000",
+      costNorm: "0.106000",
+      rankScore: "0.760000",
+      benchmarkResultId: 8,
+    },
+  ],
+};
+
+export const prefillFixture: PrefillResult = {
+  taskTypes: ["agentic_coding"],
+  budgetSensitivity: "high",
+  latencyNeed: "low",
+  matchedTerms: ["agent", "cheap", "fast"],
+};
+
+// The project returned by POST /projects (created from the chosen option + baseline).
+export const createdProjectFixture: Project = {
+  id: 7,
+  name: "acme-api",
+  userId: 1,
+  selectedOptionId: 11,
+  selectedOptionModel: "Claude Haiku 4.5",
+  baselineModelId: 9,
+  baselineModel: "Claude Sonnet 4.5",
+  baselineVendor: "Anthropic",
+};
+
+export const jenkinsConnectionFixture: JenkinsConnection = {
+  projectId: 7,
+  baseUrl: "https://jenkins.example.com",
+  jobName: "acme-api/main",
+  status: "configured",
+  jenkinsTokenRef: "secret://jenkins-token/7",
+  modelApiKeyRef: "secret://model-key/7",
+};
+
+// CI setup with the mint-once token present (first fetch) …
+export const ciSetupFixture: CiSetup = {
+  snippet: "stage('ModelMatch') {\n  steps { sh 'docker run modelmatch-agent' }\n}",
+  imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.2.0",
+  ciRunsUrl: "http://localhost:8000/projects/7/ci-runs",
+  token: "mmci_s3cr3t_one_time_value",
+};
+
+// … and the same after the token was already minted (null on subsequent fetches).
+export const ciSetupNoTokenFixture: CiSetup = {
+  ...ciSetupFixture,
+  token: null,
 };
 
 // An overspend point/run: the recommended model cost MORE than baseline (negative
