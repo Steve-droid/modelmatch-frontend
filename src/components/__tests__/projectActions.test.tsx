@@ -34,7 +34,7 @@ beforeEach(() => {
 });
 
 function openMenu() {
-  fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+  fireEvent.click(screen.getByRole("button", { name: /ci-agent actions/i }));
 }
 
 describe("ProjectActions", () => {
@@ -43,7 +43,7 @@ describe("ProjectActions", () => {
     openMenu();
     expect(screen.getByRole("menuitem", { name: /edit jenkins/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /re-pick model/i })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /delete project/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /delete ci-agent/i })).toBeInTheDocument();
   });
 
   it("deletes after confirmation and hands the id back via onDeleted", async () => {
@@ -52,10 +52,10 @@ describe("ProjectActions", () => {
     render(<ProjectActions project={project} onChanged={vi.fn()} onDeleted={onDeleted} />);
 
     openMenu();
-    fireEvent.click(screen.getByRole("menuitem", { name: /delete project/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete ci-agent/i }));
     // confirm dialog
     expect(screen.getByText(/permanently removes/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /^delete project$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^delete ci-agent$/i }));
 
     await waitFor(() => expect(deleteProject).toHaveBeenCalledWith(1));
     expect(onDeleted).toHaveBeenCalledWith(1);

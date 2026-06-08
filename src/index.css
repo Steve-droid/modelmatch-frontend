@@ -41,3 +41,32 @@
     transform: translateY(0);
   }
 }
+
+/* Home Create-section backdrop: catalog model names fading in and out (low-contrast). */
+@keyframes modelFloat {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.44;
+  }
+}
+
+/* Home Agents-section pipeline backdrop: dashes flowing along the stage connectors,
+   and a soft pulse on the CI-Agent (Review) stage. CSS-only — no bundle/image cost. */
+@keyframes pipelineFlow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes pipelinePulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

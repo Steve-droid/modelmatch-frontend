@@ -10,7 +10,7 @@ export function qualityOf(qualityOk: boolean | null): {
   dot: string;
 } {
   if (qualityOk === true)
-    return { label: "Banked", status: "banking", className: "text-banked", dot: "bg-banked" };
+    return { label: "Saved", status: "banking", className: "text-banked", dot: "bg-banked" };
   if (qualityOk === false)
     return { label: "Quality risk", status: "quality_risk", className: "text-risk", dot: "bg-risk" };
   return { label: "Unrated", status: "unrated", className: "text-unrated", dot: "bg-unrated" };
@@ -21,7 +21,7 @@ const STATUS_META: Record<
   { label: string; className: string; Icon: typeof CheckCircle2 }
 > = {
   banking: {
-    label: "Banking savings",
+    label: "Saving vs baseline",
     className: "text-banked border-banked/40 bg-banked/10",
     Icon: CheckCircle2,
   },

@@ -26,10 +26,12 @@ const STEPS: { key: Step; label: string }[] = [
 export function Onboarding({
   onDone,
   onCancel,
+  onHome,
   onUnauthorized,
 }: {
   onDone: (projectId: number) => void;
   onCancel?: () => void;
+  onHome?: () => void;
   onUnauthorized?: () => void;
 }) {
   const [step, setStep] = useState<Step>("recommend");
@@ -59,11 +61,18 @@ export function Onboarding({
       <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
-              <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
-            </span>
-            <span className="font-semibold tracking-tight">ModelMatch</span>
-            <span className="text-xs text-faint">New project</span>
+            <button
+              onClick={onHome}
+              disabled={!onHome}
+              aria-label="Home"
+              className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+                <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
+              </span>
+              <span className="font-semibold tracking-tight">ModelMatch</span>
+            </button>
+            <span className="text-xs text-faint">New CI-Agent</span>
           </div>
           {onCancel && (
             <button
