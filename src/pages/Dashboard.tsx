@@ -102,6 +102,16 @@ export function Dashboard({
     setData(null);
   }, [projectId]);
 
+  // Reflect the active project in the URL (?project=) so a reload restores it via
+  // initialProjectParam(). replaceState reuses the existing history.state so App's
+  // `mmPhase` (the dashboard phase) survives the reload too — the two cooperate.
+  useEffect(() => {
+    if (projectId == null) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("project", String(projectId));
+    window.history.replaceState(window.history.state, "", url);
+  }, [projectId]);
+
   // Load savings for the active project + range.
   useEffect(() => {
     if (projectId == null) return;

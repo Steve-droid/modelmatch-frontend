@@ -18,6 +18,10 @@ import { getChatHistory } from "../../api/chat";
 
 beforeEach(() => {
   clearToken();
+  // App now restores its phase from window.history.state (so a reload stays on the
+  // dashboard). jsdom persists that across tests in a file, so reset it to mimic a fresh
+  // page load — otherwise one test's navigation leaks into the next.
+  window.history.replaceState(null, "", "/");
   vi.mocked(listProjects).mockReset();
   vi.mocked(getSavings).mockReset();
   vi.mocked(getChatHistory).mockReset();

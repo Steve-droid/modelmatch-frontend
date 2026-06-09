@@ -44,30 +44,37 @@ export function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  // On sign-in, probe projects for the hub's empty-state nudge, then land on the home
-  // hub (the default post-login landing).
+  // On sign-in (or a reload while signed in), probe projects for the hub's empty-state
+  // nudge, then land on the RESTORED phase. `window.history.state` survives a reload and
+  // the app records `mmPhase` there on every navigation, so a refresh on the dashboard
+  // stays on the dashboard instead of always bouncing to home. First-ever load (no saved
+  // state) defaults to the home hub.
   useEffect(() => {
     if (!authed) return;
     let live = true;
     setPhase("loading");
+    const landOn = (count: number) => {
+      setAgentCount(count);
+      const saved = (window.history.state as { mmPhase?: Phase } | null)?.mmPhase;
+      const restored: Phase =
+        saved === "dashboard" || saved === "onboarding" || saved === "home"
+          ? saved
+          : "home";
+      // Seed the landing history entry only when there isn't one yet (replace, not push,
+      // so Back from home leaves the app cleanly); on a reload we keep the saved entry.
+      if (saved == null) window.history.replaceState({ mmPhase: restored }, "");
+      setPhase(restored);
+    };
     listProjects()
       .then((list) => {
-        if (!live) return;
-        setAgentCount(list.length);
-        // Landing entry — replace (not push) so Back from home leaves the app cleanly.
-        window.history.replaceState({ mmPhase: "home" }, "");
-        setPhase("home");
+        if (live) landOn(list.length);
       })
       .catch((e: unknown) => {
         if (!live) return;
         if (e instanceof ApiError && e.status === 401) handleUnauthorized();
-        else {
-          // Couldn't reach the backend — still land on the hub (0 agents); the
-          // dashboard/onboarding will surface the real error if the user enters them.
-          setAgentCount(0);
-          window.history.replaceState({ mmPhase: "home" }, "");
-          setPhase("home");
-        }
+        // Couldn't reach the backend — still land (0 agents); the dashboard/onboarding
+        // will surface the real error if the user enters them.
+        else landOn(0);
       });
     return () => {
       live = false;
