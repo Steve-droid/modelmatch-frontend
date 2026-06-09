@@ -1,0 +1,18 @@
+node_modules
+dist
+.git
+# tests + e2e are not needed in the image build context
+e2e
+test-results
+playwright-report
+playwright/.cache
+coverage
+# local + editor
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode
+.idea
+.claude

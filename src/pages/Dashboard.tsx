@@ -102,6 +102,16 @@ export function Dashboard({
     setData(null);
   }, [projectId]);
 
+  // Reflect the active project in the URL (?project=) so a reload restores it via
+  // initialProjectParam(). replaceState reuses the existing history.state so App's
+  // `mmPhase` (the dashboard phase) survives the reload too — the two cooperate.
+  useEffect(() => {
+    if (projectId == null) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("project", String(projectId));
+    window.history.replaceState(window.history.state, "", url);
+  }, [projectId]);
+
   // Load savings for the active project + range.
   useEffect(() => {
     if (projectId == null) return;
@@ -139,6 +149,12 @@ export function Dashboard({
     setProjectId(null);
     void loadProjects();
   }, [loadProjects]);
+
+  // After rating a finding: refetch savings only (a verdict may have flipped the run's
+  // quality_ok, re-banking or excluding its savings). No project-list reload needed.
+  const handleRated = useCallback(() => {
+    setRefreshNonce((n) => n + 1);
+  }, []);
 
   return (
     <div className="min-h-full">
@@ -246,7 +262,11 @@ export function Dashboard({
                     <QualityTrend series={data.series} threshold={k.threshold} />
                   </section>
 
-                  <RunsTable projectId={projectId} runs={data.runs} />
+                  <RunsTable
+                    projectId={projectId}
+                    runs={data.runs}
+                    onRated={handleRated}
+                  />
                 </>
               )}
             </div>

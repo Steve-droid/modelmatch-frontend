@@ -29,7 +29,17 @@ const BAND =
 const V_GRID = [223, 366, 509, 652, 795];
 const H_GRID = [70, 110, 150, 190, 230];
 
-export function SavingsCurveBackdrop({ className = "" }: { className?: string }) {
+// `active` plays a one-shot draw-in (the welcome section passes its in-view state): the
+// cost line draws left→right (stroke-dashoffset over a normalised pathLength), markers
+// pop along it, then the savings wedge + baseline fade in. Pure CSS transitions — no JS
+// ticking, no bundle cost. When false everything sits at its start state (line undrawn).
+export function SavingsCurveBackdrop({
+  className = "",
+  active = false,
+}: {
+  className?: string;
+  active?: boolean;
+}) {
   return (
     <svg aria-hidden="true" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" className={className}>
       {/* grid */}
@@ -48,25 +58,51 @@ export function SavingsCurveBackdrop({ className = "" }: { className?: string })
         <line key={`t${y}`} x1={X0 - 6} y1={y} x2={X0} y2={y} stroke="#363b44" strokeWidth="1.5" />
       ))}
 
-      {/* savings wedge */}
-      <polygon points={BAND} fill="#5b93a8" fillOpacity="0.14" />
+      {/* savings wedge — fills in once the line has drawn */}
+      <polygon
+        points={BAND}
+        fill="#5b93a8"
+        style={{ opacity: active ? 0.14 : 0, transition: "opacity 0.7s ease-out 1.15s" }}
+      />
 
-      {/* premium baseline (flat, dashed) */}
+      {/* premium baseline (flat, dashed) — fades in first */}
       <line
         x1={X0}
         y1={BASELINE_Y}
         x2={X1}
         y2={BASELINE_Y}
         stroke="#5b93a8"
-        strokeOpacity="0.55"
         strokeWidth="2"
         strokeDasharray="6 6"
+        style={{ opacity: active ? 0.55 : 0, transition: "opacity 0.6s ease-out 0.15s" }}
       />
 
-      {/* recommended-model cost line + markers */}
-      <polyline points={ACTUAL_POINTS} fill="none" stroke="#5b93a8" strokeWidth="2.5" />
-      {ACTUAL.map(([x, y]) => (
-        <circle key={x} cx={x} cy={y} r="4" fill="#5b93a8" />
+      {/* recommended-model cost line — draws left→right */}
+      <polyline
+        points={ACTUAL_POINTS}
+        fill="none"
+        stroke="#5b93a8"
+        strokeWidth="2.5"
+        pathLength={1}
+        style={{
+          strokeDasharray: 1,
+          strokeDashoffset: active ? 0 : 1,
+          transition: "stroke-dashoffset 1.3s ease-out 0.3s",
+        }}
+      />
+      {/* markers — pop in along the line as it draws */}
+      {ACTUAL.map(([x, y], i) => (
+        <circle
+          key={x}
+          cx={x}
+          cy={y}
+          r="4"
+          fill="#5b93a8"
+          style={{
+            opacity: active ? 1 : 0,
+            transition: `opacity 0.3s ease-out ${0.45 + i * 0.16}s`,
+          }}
+        />
       ))}
     </svg>
   );

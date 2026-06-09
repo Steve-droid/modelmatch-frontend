@@ -8,7 +8,11 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test --project=happy-path",
+    "e2e:headed": "playwright test --project=happy-path --headed",
+    "e2e:all": "playwright test",
+    "test:e2e": "playwright test --project=happy-path"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
@@ -17,6 +21,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.0",

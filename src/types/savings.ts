@@ -60,6 +60,9 @@ export interface SavingsResponse {
   runs: SavingsRunRow[];
 }
 
+// A human's verdict on a CI finding — the quality signal (S13).
+export type Verdict = "accept" | "reject";
+
 // Findings drill-in (GET /projects/{id}/runs/{run_id}/findings).
 export interface FindingRow {
   id: number;
@@ -68,10 +71,20 @@ export interface FindingRow {
   file: string | null;
   line: number | null;
   message: string | null;
-  verdict: string | null; // the caller's accept/reject, or null
+  verdict: Verdict | null; // the caller's accept/reject, or null (unrated)
 }
 
 export interface RunFindingsResponse {
   runId: number;
   findings: FindingRow[];
+}
+
+// POST /findings/{id}/feedback response (mirrors FeedbackOut, camelCase out). Carries
+// the run's recomputed gate so the dashboard knows the verdict re-banked the savings.
+export interface FeedbackResponse {
+  findingId: number;
+  ciRunId: number;
+  verdict: Verdict;
+  acceptanceRate: number | null; // run's accepted/rated after this verdict
+  qualityOk: boolean | null; // run's gate: null=un-gated, else rate ≥ threshold
 }

@@ -18,7 +18,7 @@ export function WelcomeSection({ id, onScrollNext }: { id: string; onScrollNext:
       className="relative flex min-h-full snap-start flex-col items-center justify-center overflow-hidden px-6 text-center"
     >
       <SectionBackdrop>
-        <SavingsCurveBackdrop className="h-full w-full" />
+        <SavingsCurveBackdrop className="h-full w-full" active={inView} />
       </SectionBackdrop>
 
       <div

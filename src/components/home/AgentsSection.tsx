@@ -1,12 +1,12 @@
 import { ArrowRight, LayoutDashboard, Plus } from "lucide-react";
 import { useInView } from "../../lib/useInView";
 import { PipelineBackdrop } from "./PipelineBackdrop";
-import { SectionBackdrop } from "./SectionBackdrop";
 
 // Section 2 — "View my agents" → the savings dashboard. An "agent" is a project running
-// the containerised CI code-review agent. A blurred, dimmed CI-pipeline diagram sits
-// behind the copy (cyan signal accent). New users (0 agents) get a nudge to create their
-// first one instead of being dropped into an empty dashboard.
+// the containerised CI code-review agent. The animated CI-pipeline motif sits as a
+// visible band BELOW the CTA (not hidden behind the centred copy), edge-faded into the
+// canvas with a soft cyan glow behind the highlighted Review stage. New users (0 agents)
+// get a nudge to create their first one instead of being dropped into an empty dashboard.
 export function AgentsSection({
   id,
   hasAgents,
@@ -26,14 +26,8 @@ export function AgentsSection({
     <section
       id={id}
       ref={ref}
-      className="relative flex min-h-full snap-start items-center justify-center overflow-hidden px-6"
+      className="relative flex min-h-full snap-start flex-col items-center justify-center overflow-hidden px-6 pb-48 lg:pb-60"
     >
-      {/* Pipeline runs wider + crisper + a touch brighter than the other backdrops so
-          the flowing connector animation is easy to read. */}
-      <SectionBackdrop maxW="max-w-[1700px]" blurClass="blur-[1px]" opacityClass="opacity-[0.31]">
-        <PipelineBackdrop className="h-full w-full" />
-      </SectionBackdrop>
-
       <div
         className={`relative z-10 max-w-xl text-center transition-all duration-700 ease-out lg:max-w-2xl ${
           inView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
@@ -81,6 +75,27 @@ export function AgentsSection({
             </button>
           </>
         )}
+      </div>
+
+      {/* The animated pipeline as a wide band anchored below the CTA — actually visible,
+          unlike the old centred motif that hid behind the copy. A soft cyan glow pools
+          behind the highlighted Review stage; the strip dissolves at both edges into the
+          canvas. Flow + pulse animations are unchanged. Fades in with the section.
+          Decorative → aria-hidden. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-12 z-0 flex items-center justify-center lg:bottom-16"
+      >
+        <div className="relative mx-auto w-[85%] max-w-[61rem] 2xl:max-w-[68rem]">
+          <div className="absolute left-1/2 top-1/2 h-48 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal/[0.13] blur-3xl" />
+          <div
+            className={`transition-opacity duration-1000 ease-out [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)] ${
+              inView ? "opacity-80" : "opacity-0"
+            }`}
+          >
+            <PipelineBackdrop className="h-auto w-full" />
+          </div>
+        </div>
       </div>
     </section>
   );
