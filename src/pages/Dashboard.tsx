@@ -140,6 +140,12 @@ export function Dashboard({
     void loadProjects();
   }, [loadProjects]);
 
+  // After rating a finding: refetch savings only (a verdict may have flipped the run's
+  // quality_ok, re-banking or excluding its savings). No project-list reload needed.
+  const handleRated = useCallback(() => {
+    setRefreshNonce((n) => n + 1);
+  }, []);
+
   return (
     <div className="min-h-full">
       <Header
@@ -246,7 +252,11 @@ export function Dashboard({
                     <QualityTrend series={data.series} threshold={k.threshold} />
                   </section>
 
-                  <RunsTable projectId={projectId} runs={data.runs} />
+                  <RunsTable
+                    projectId={projectId}
+                    runs={data.runs}
+                    onRated={handleRated}
+                  />
                 </>
               )}
             </div>

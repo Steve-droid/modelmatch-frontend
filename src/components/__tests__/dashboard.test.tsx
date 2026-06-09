@@ -14,12 +14,13 @@ import {
   chatHistoryFixture,
 } from "../../test/fixtures";
 
-// getRunFindings is called from RunsTable on row click; stub it so imports resolve.
+// getRunFindings + submitFeedback are called from RunsTable; stub so imports resolve.
 vi.mock("../../api/savings", () => ({
   getSavings: vi.fn(),
   getRunFindings: vi.fn().mockResolvedValue({ runId: 0, findings: [] }),
+  submitFeedback: vi.fn(),
 }));
-import { getSavings } from "../../api/savings";
+import { getSavings, getRunFindings, submitFeedback } from "../../api/savings";
 
 // The Dashboard now loads the project list (switcher) and mounts the chat panel;
 // stub both so it can render savings without real network calls.
@@ -94,6 +95,78 @@ describe("RunsTable", () => {
     const cell = screen.getByText("-$0.0100");
     expect(cell.className).toContain("text-risk");
     expect(cell.className).not.toContain("text-banked");
+  });
+});
+
+describe("RunsTable — rating a finding (S17b)", () => {
+  it("submits a verdict, reflects it, and tells the dashboard to refetch savings", async () => {
+    vi.mocked(getRunFindings).mockResolvedValueOnce({
+      runId: 101,
+      findings: [
+        {
+          id: 7,
+          severity: "high",
+          category: "security",
+          file: "Jenkinsfile",
+          line: 12,
+          message: "hardcoded internal IP",
+          verdict: null,
+        },
+      ],
+    });
+    vi.mocked(submitFeedback).mockResolvedValueOnce({
+      findingId: 7,
+      ciRunId: 101,
+      verdict: "accept",
+      acceptanceRate: 1,
+      qualityOk: true,
+    });
+    const onRated = vi.fn();
+    render(
+      <RunsTable projectId={2} runs={savingsFixture.runs} onRated={onRated} />,
+    );
+
+    // drill into a run → its findings load → the accept/reject control appears
+    fireEvent.click(screen.getByText("101"));
+    const accept = await screen.findByLabelText("Accept finding");
+    expect(accept).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(accept);
+
+    await waitFor(() => expect(submitFeedback).toHaveBeenCalledWith(7, "accept"));
+    // verdict reflected locally + dashboard told to refetch (re-bank the savings)
+    await waitFor(() => expect(accept).toHaveAttribute("aria-pressed", "true"));
+    expect(onRated).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the prior state and shows an error when the submit fails", async () => {
+    vi.mocked(getRunFindings).mockResolvedValueOnce({
+      runId: 101,
+      findings: [
+        {
+          id: 8,
+          severity: "low",
+          category: "style",
+          file: "src/app.py",
+          line: 3,
+          message: "noise",
+          verdict: null,
+        },
+      ],
+    });
+    vi.mocked(submitFeedback).mockRejectedValueOnce(new Error("boom"));
+    const onRated = vi.fn();
+    render(
+      <RunsTable projectId={2} runs={savingsFixture.runs} onRated={onRated} />,
+    );
+
+    fireEvent.click(screen.getByText("101"));
+    const reject = await screen.findByLabelText("Reject finding");
+    fireEvent.click(reject);
+
+    expect(await screen.findByText(/couldn’t save/i)).toBeInTheDocument();
+    expect(reject).toHaveAttribute("aria-pressed", "false"); // unchanged
+    expect(onRated).not.toHaveBeenCalled();
   });
 });
 
