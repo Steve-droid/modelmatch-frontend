@@ -62,7 +62,15 @@ pipeline {
       steps {
         checkout scm // Multibranch provides the FE read deploy key for the checkout
         script {
-          // Load stable non-secret CI config from the repo and fail fast if incomplete.
+          // Load stable non-secret CI config from the repo. Parse into a Map with a
+          // sandbox-safe map literal (collectEntries — no dynamic putAt), then assign env
+          // by EXPLICIT property (env.FOO = …); the CPS sandbox rejects dynamic env[k]=v.
+          Map cfg = readFile('ci/pipeline.env').readLines()
+            .findAll { String l -> l.trim() && !l.trim().startsWith('#') && l.contains('=') }
+            .collectEntries { String l ->
+              int i = l.indexOf('=')
+              [(l.substring(0, i).trim()): l.substring(i + 1).trim()]
+            }
           def required = [
             'AWS_DEFAULT_REGION', 'ECR_REGISTRY', 'ECR_REPO',
             'E2E_BACKEND_REPO', 'E2E_BACKEND_TAG',
@@ -70,21 +78,31 @@ pipeline {
             'FE_REPO_SSH', 'GITOPS_REPO', 'GITOPS_VALUES',
             'CRED_FE_DEPLOY_KEY', 'CRED_GITOPS_KEY',
           ]
-          readFile('ci/pipeline.env').split('\n').each { line ->
-            String t = line.trim()
-            if (!t || t.startsWith('#')) return
-            int i = t.indexOf('=')
-            if (i > 0) { env[t.substring(0, i).trim()] = t.substring(i + 1).trim() }
-          }
-          def missing = required.findAll { !env[it] }
+          def missing = required.findAll { !cfg.get(it) }
           if (missing) { error "ci/pipeline.env missing required keys: ${missing.join(', ')}" }
+
+          env.AWS_DEFAULT_REGION = cfg.get('AWS_DEFAULT_REGION')
+          env.ECR_REGISTRY       = cfg.get('ECR_REGISTRY')
+          env.ECR_REPO           = cfg.get('ECR_REPO')
+          env.E2E_BACKEND_REPO   = cfg.get('E2E_BACKEND_REPO')
+          env.E2E_BACKEND_TAG    = cfg.get('E2E_BACKEND_TAG')
+          env.NODE_IMAGE         = cfg.get('NODE_IMAGE')
+          env.PLAYWRIGHT_IMAGE   = cfg.get('PLAYWRIGHT_IMAGE')
+          env.TRIVY_IMAGE        = cfg.get('TRIVY_IMAGE')
+          env.YQ_IMAGE           = cfg.get('YQ_IMAGE')
+          env.FE_REPO_SSH        = cfg.get('FE_REPO_SSH')
+          env.GITOPS_REPO        = cfg.get('GITOPS_REPO')
+          env.GITOPS_VALUES      = cfg.get('GITOPS_VALUES')
+          env.CRED_FE_DEPLOY_KEY = cfg.get('CRED_FE_DEPLOY_KEY')
+          env.CRED_GITOPS_KEY    = cfg.get('CRED_GITOPS_KEY')
 
           // Globally-unique run id (BUILD_NUMBER is per-BRANCH, not global in Multibranch).
           // The unique suffix (build # + short SHA) is always preserved; only the job-name
           // prefix is bounded.
           String job = sanitizeId(env.JOB_NAME)
           if (job.length() > 50) { job = job.substring(0, 50).replaceAll('[-_]+$', '') }
-          String sha = (env.GIT_COMMIT ?: 'nogit').take(7)
+          String gc = env.GIT_COMMIT ?: 'nogit'
+          String sha = gc.length() >= 7 ? gc.substring(0, 7) : gc
           env.RUN_ID = "${job}-${env.BUILD_NUMBER}-${sha}"
           env.IMAGE_CANDIDATE = "candidate-${env.RUN_ID}"
 
@@ -315,7 +333,8 @@ pipeline {
   post {
     always {
       // Free the per-build candidate image so the persistent box doesn't accumulate layers.
-      sh 'docker image rm -f "$ECR_REGISTRY/$ECR_REPO:$IMAGE_CANDIDATE" || true'
+      // Guard on IMAGE_CANDIDATE: it's unset if the build failed before Source+config ran.
+      sh 'if [ -n "${IMAGE_CANDIDATE:-}" ]; then docker image rm -f "$ECR_REGISTRY/$ECR_REPO:$IMAGE_CANDIDATE" || true; fi'
     }
     success { echo "P17 pipeline GREEN on ${env.BRANCH_NAME}" }
   }
