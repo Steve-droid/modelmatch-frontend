@@ -48,7 +48,6 @@ pipeline {
   agent any
 
   options {
-    timestamps()
     // E2E brings up a compose stack and the release tail pushes a git tag — serialize
     // builds of this branch so neither races itself. (Cross-branch isolation comes from
     // the globally-unique RUN_ID below.)
