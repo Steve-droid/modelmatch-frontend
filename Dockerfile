@@ -19,9 +19,11 @@ FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:de3e40ec8b7debd7194fc798d4
 USER root
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY --chmod=0755 docker-entrypoint.d/40-config-js.sh /docker-entrypoint.d/40-config-js.sh
+COPY docker-entrypoint.d/40-config-js.sh /docker-entrypoint.d/40-config-js.sh
 # The startup hook (40-config-js.sh) regenerates /config.js as uid 101 → the html dir
-# must be writable by that user (COPY lands root-owned by default).
-RUN chown -R 101:101 /usr/share/nginx/html
+# must be writable by that user (COPY lands root-owned by default). chmod the hook in a
+# RUN (not COPY --chmod, which needs BuildKit — the controller uses the legacy builder).
+RUN chown -R 101:101 /usr/share/nginx/html \
+ && chmod 0755 /docker-entrypoint.d/40-config-js.sh
 USER 101
 EXPOSE 8080
