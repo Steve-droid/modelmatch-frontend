@@ -1,0 +1,16 @@
+# Trivy waivers for the frontend image scan (P17).
+#
+# GATE POLICY: the pipeline fails on CRITICAL + HIGH OS/library vulnerabilities
+# (`trivy image --severity CRITICAL,HIGH --exit-code 1 --ignorefile .trivyignore`).
+#
+# PREFERRED FIX IS REMEDIATION, NOT WAIVER. The runtime image pins a clean, digest-pinned
+# nginx base (`nginx-unprivileged:stable-alpine`, alpine 3.23.x — see Dockerfile) that
+# scans with ZERO CRITICAL/HIGH on its own, so this file holds NO active waivers. When
+# that frozen base later accrues a finding, re-pin its digest (don't waive).
+#
+# Only add a waiver here when a CRITICAL/HIGH has NO fix available upstream AND is not
+# reachable in our usage. Each entry MUST be documented: CVE id, why it's not
+# exploitable for us, and a review/expiry date. Example (commented, not active):
+#
+#   # CVE-XXXX-YYYY  pkg foo  no upstream fix; <reason not exploitable>  review 2026-07-01
+#   CVE-XXXX-YYYY

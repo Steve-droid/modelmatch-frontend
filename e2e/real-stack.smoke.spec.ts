@@ -15,8 +15,15 @@ import { test, expect } from "@playwright/test";
 //   1) cd modelmatch-backend && docker compose up -d        # Postgres + app on :8000
 //   2) uv run python -c "from app.db import SessionLocal; from app.catalog.seed import load_seed; s=SessionLocal(); load_seed(s); s.commit()"
 //   3) cd ../modelmatch-frontend && npx playwright test --project=real-stack
+//
+// CI CONTRACT: the P17 Jenkins E2E stage sets E2E_REQUIRE_BACKEND=true. With that flag an
+// unreachable backend or an unseeded catalog is a HARD FAILURE, not a skip — the required
+// pipeline gate must never go green by silently skipping. Locally (flag unset) it still
+// self-skips so the optional smoke is a no-op without a running stack.
 
 const API = process.env.E2E_API_BASE ?? "http://localhost:8000";
+// When set by CI, the preconditions below fail instead of skip.
+const REQUIRE_BACKEND = process.env.E2E_REQUIRE_BACKEND === "true";
 const CREDS = { email: `e2e+${Date.now()}@example.com`, password: "e2e-smoke-pw-123456" };
 
 // A mocked agent result — the shape the CI-Agent POSTs to /ci-runs. Deterministic; the
@@ -50,9 +57,16 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   try {
     up = (await request.get(`${API}/healthz`, { timeout: 2000 })).ok();
   } catch {
-    up = false;
+    // unreachable backend → `up` stays false and the test self-skips below.
   }
-  test.skip(!up, `backend not reachable at ${API} — bring up compose + seed the catalog`);
+  if (REQUIRE_BACKEND) {
+    expect(
+      up,
+      `E2E_REQUIRE_BACKEND set but backend not reachable at ${API}`,
+    ).toBeTruthy();
+  } else {
+    test.skip(!up, `backend not reachable at ${API} — bring up compose + seed the catalog`);
+  }
 
   // --- register a fresh user via the API ---
   const reg = await request.post(`${API}/auth/register`, { data: CREDS });
@@ -70,10 +84,17 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   });
   const shortlist =
     preflight.status() === 201 ? ((await preflight.json())?.shortlist ?? []) : [];
-  test.skip(
-    shortlist.length === 0,
-    `catalog not seeded at ${API} (recommend → ${preflight.status()}) — run load_seed first`,
-  );
+  if (REQUIRE_BACKEND) {
+    expect(
+      shortlist.length,
+      `E2E_REQUIRE_BACKEND set but catalog not seeded at ${API} (recommend → ${preflight.status()})`,
+    ).toBeGreaterThan(0);
+  } else {
+    test.skip(
+      shortlist.length === 0,
+      `catalog not seeded at ${API} (recommend → ${preflight.status()}) — run load_seed first`,
+    );
+  }
 
   // --- sign in through the UI ---
   await page.goto("/");
