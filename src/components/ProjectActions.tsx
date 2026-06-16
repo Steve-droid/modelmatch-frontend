@@ -17,6 +17,7 @@ import { RecommenderForm } from "./onboarding/RecommenderForm";
 import { RecommendationView } from "./onboarding/RecommendationView";
 import { JenkinsConnectForm } from "./onboarding/JenkinsConnectForm";
 import { CiSetupView } from "./onboarding/CiSetupView";
+import { runtimeHintFromProjectModel } from "./onboarding/jenkinsRuntime";
 
 type View = "menu" | "editJenkins" | "cisetup" | "repick" | "delete";
 
@@ -235,6 +236,7 @@ function EditJenkins({
       initialJobName={initial.jobName}
       submitLabel="Save changes"
       onUnauthorized={onUnauthorized}
+      runtimeHint={runtimeHintFromProjectModel(project.selectedOptionModel)}
       onSubmit={async (input) => {
         await connectJenkins(project.id, input);
         // Incomplete project → continue to CI setup (the missing token); else done.

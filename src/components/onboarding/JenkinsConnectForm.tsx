@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyRound, Loader2, Plug } from "lucide-react";
 import type { JenkinsConnectInput } from "../../types/ci";
 import { ApiError } from "../../api/client";
+import type { JenkinsRuntimeHint } from "./jenkinsRuntime";
 
 // Mirror the backend's AnyHttpUrl gate (app/schemas/jenkins.py): a real http(s) URL
 // with a host. http is allowed (not HTTPS-only); "aaa" fails (URL() throws) and so
@@ -16,20 +17,6 @@ export function isValidJenkinsUrl(value: string): boolean {
   }
 }
 
-// The two Jenkins "Secret text" credentials the USER creates in Jenkins — the agent
-// reads them at runtime. ModelMatch never sees the provider key; it only mints the
-// CI token (shown on the next step). Keep these ids in sync with the agent snippet.
-const CRED_IDS = [
-  {
-    id: "modelmatch-model-api-key",
-    desc: "your provider API key (BYOK) — the CI-Agent reads it; ModelMatch never sees it",
-  },
-  {
-    id: "modelmatch-ci-token",
-    desc: "the CI ingest token shown on the next step",
-  },
-];
-
 // Jenkins SETUP — metadata only (base URL + job name). ModelMatch does not collect or
 // store the provider key or a Jenkins API token; those live in Jenkins credentials.
 // The submit is caller-owned (onSubmit) so this serves onboarding's defer-create
@@ -41,12 +28,14 @@ export function JenkinsConnectForm({
   initialBaseUrl = "",
   initialJobName = "",
   submitLabel = "Continue",
+  runtimeHint = null,
 }: {
   onSubmit: (input: JenkinsConnectInput) => Promise<void>;
   onUnauthorized?: () => void;
   initialBaseUrl?: string;
   initialJobName?: string;
   submitLabel?: string;
+  runtimeHint?: JenkinsRuntimeHint | null;
 }) {
   const [baseUrl, setBaseUrl] = useState(initialBaseUrl);
   const [jobName, setJobName] = useState(initialJobName);
@@ -58,6 +47,7 @@ export function JenkinsConnectForm({
   // untouched empty field.
   const showUrlHint = baseUrl.trim() !== "" && !urlValid;
   const canSubmit = urlValid && jobName.trim() !== "" && !submitting;
+  const copy = copyForRuntime(runtimeHint);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +74,7 @@ export function JenkinsConnectForm({
         <div className="leading-tight">
           <div className="text-sm font-semibold">Point ModelMatch at your Jenkins</div>
           <div className="text-xs text-faint">
-            ModelMatch only needs the job's location — your provider key stays in Jenkins.
+            {copy.intro}
           </div>
         </div>
       </div>
@@ -118,16 +108,21 @@ export function JenkinsConnectForm({
       <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
           <KeyRound size={13} className="text-signal" />
-          In Jenkins, add these "Secret text" credentials:
+          {copy.heading}
         </div>
         <ul className="mt-2 flex flex-col gap-1.5">
-          {CRED_IDS.map((c) => (
+          {copy.credentials.map((c) => (
             <li key={c.id} className="text-xs">
               <code className="num text-gray-100">{c.id}</code>
               <span className="text-faint"> — {c.desc}</span>
             </li>
           ))}
         </ul>
+        {copy.note && (
+          <div className="mt-2 rounded-md border border-border bg-panel px-2.5 py-2 text-xs text-faint">
+            {copy.note}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -158,4 +153,58 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
+  intro: string;
+  heading: string;
+  credentials: { id: string; desc: string }[];
+  note: string | null;
+} {
+  const ciToken = {
+    id: "modelmatch-ci-token",
+    desc: "the CI ingest token shown on the next step",
+  };
+
+  if (!runtimeHint) {
+    return {
+      intro:
+        "ModelMatch only needs the job's location — runtime auth stays in Jenkins or AWS, not in ModelMatch.",
+      heading: 'In Jenkins, add these runtime requirements:',
+      credentials: [
+        {
+          id: "modelmatch-model-api-key",
+          desc: "only for models that use an API key; Bedrock/AWS IAM models do not need it",
+        },
+        ciToken,
+      ],
+      note:
+        "API-key runtimes bind this credential into the CI container on the next step. Bedrock runtimes skip it and use the Jenkins node's AWS IAM identity instead.",
+    };
+  }
+
+  if (runtimeHint.authMode === "aws_iam") {
+    const model = runtimeHint.modelLabel ?? "this Bedrock model";
+    return {
+      intro:
+        "ModelMatch only needs the job's location — Bedrock access stays on the Jenkins node's AWS IAM identity.",
+      heading: 'In Jenkins, add this "Secret text" credential:',
+      credentials: [ciToken],
+      note: `${model} runs through ${runtimeHint.providerLabel}. Do not add modelmatch-model-api-key for this runtime; the Jenkins node or agent needs AWS IAM access for Bedrock instead.`,
+    };
+  }
+
+  return {
+    intro:
+      "ModelMatch only needs the job's location — your provider key stays in Jenkins.",
+    heading: 'In Jenkins, add these "Secret text" credentials:',
+    credentials: [
+      {
+        id: "modelmatch-model-api-key",
+        desc: `your ${runtimeHint.providerLabel} API key — the CI stage binds it as ${runtimeHint.credentialEnvVar}`,
+      },
+      ciToken,
+    ],
+    note: null,
+  };
 }

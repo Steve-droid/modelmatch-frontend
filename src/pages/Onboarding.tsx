@@ -8,6 +8,7 @@ import { RecommenderForm } from "../components/onboarding/RecommenderForm";
 import { RecommendationView } from "../components/onboarding/RecommendationView";
 import { JenkinsConnectForm } from "../components/onboarding/JenkinsConnectForm";
 import { CiSetupView } from "../components/onboarding/CiSetupView";
+import { runtimeHintFromRecommendationOption } from "../components/onboarding/jenkinsRuntime";
 
 type Step = "recommend" | "jenkins" | "cisetup";
 const STEPS: { key: Step; label: string }[] = [
@@ -40,6 +41,10 @@ export function Onboarding({
   const [projectId, setProjectId] = useState<number | null>(null);
 
   const activeIndex = STEPS.findIndex((s) => s.key === step);
+  const selectedOption =
+    result?.shortlist.find((opt) => opt.recommendationOptionId === draft?.selectedOptionId) ??
+    null;
+  const runtimeHint = runtimeHintFromRecommendationOption(selectedOption);
 
   // Jenkins-step Continue: create the project now (once, if not already created) then
   // connect it. Errors propagate to JenkinsConnectForm's inline error/401 handling; a
@@ -117,6 +122,7 @@ export function Onboarding({
           <JenkinsConnectForm
             onUnauthorized={onUnauthorized}
             onSubmit={handleConnect}
+            runtimeHint={runtimeHint}
           />
         )}
 

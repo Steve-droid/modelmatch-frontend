@@ -45,6 +45,42 @@ describe("JenkinsConnectForm (metadata only + URL validation)", () => {
     expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
   });
 
+  it("shows provider-specific API-key wiring when the selected runtime uses a key", () => {
+    render(
+      <JenkinsConnectForm
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+        runtimeHint={{
+          authMode: "api_key",
+          credentialEnvVar: "ANTHROPIC_API_KEY",
+          modelLabel: "Claude Haiku 4.5",
+          providerLabel: "Anthropic",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("modelmatch-model-api-key")).toBeInTheDocument();
+    expect(screen.getByText(/binds it as ANTHROPIC_API_KEY/i)).toBeInTheDocument();
+    expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
+  });
+
+  it("shows Bedrock IAM guidance without a model API key credential for Nova", () => {
+    render(
+      <JenkinsConnectForm
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+        runtimeHint={{
+          authMode: "aws_iam",
+          credentialEnvVar: null,
+          modelLabel: "Nova 2 Lite",
+          providerLabel: "Amazon Bedrock",
+        }}
+      />,
+    );
+
+    expect(screen.queryByText("modelmatch-model-api-key")).not.toBeInTheDocument();
+    expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
+    expect(screen.getByText(/aws iam access for bedrock/i)).toBeInTheDocument();
+  });
+
   it("hands a metadata-only body up via onSubmit — base URL + job name only", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<JenkinsConnectForm onSubmit={onSubmit} />);
@@ -206,6 +242,21 @@ describe("Onboarding defer-create", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => expect(connectJenkins).toHaveBeenCalledTimes(2));
     expect(createProject).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Bedrock Jenkins requirements when the user picks Nova 2 Lite", async () => {
+    getRecommendation();
+
+    fireEvent.click(await screen.findByText("Nova 2 Lite"));
+    fireEvent.change(screen.getByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    await screen.findByLabelText("Jenkins base URL");
+    expect(screen.queryByText("modelmatch-model-api-key")).not.toBeInTheDocument();
+    expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
+    expect(screen.getByText(/do not add modelmatch-model-api-key/i)).toBeInTheDocument();
   });
 });
 
