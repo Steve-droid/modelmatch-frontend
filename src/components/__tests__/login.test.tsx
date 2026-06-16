@@ -21,7 +21,7 @@ describe("Login", () => {
   it("stores the token and signals onAuthed on success", async () => {
     vi.mocked(login).mockResolvedValue({ accessToken: "jwt-123", tokenType: "bearer" });
     const onAuthed = vi.fn();
-    render(<Login onAuthed={onAuthed} />);
+    render(<Login onAuthed={onAuthed} onRegister={vi.fn()} />);
 
     fill("steve@example.com", "hunter2");
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
@@ -34,7 +34,7 @@ describe("Login", () => {
   it("shows a friendly message on bad credentials (401), no token stored", async () => {
     vi.mocked(login).mockRejectedValue(new ApiError(401, "Invalid email or password"));
     const onAuthed = vi.fn();
-    render(<Login onAuthed={onAuthed} />);
+    render(<Login onAuthed={onAuthed} onRegister={vi.fn()} />);
 
     fill("steve@example.com", "wrong");
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
@@ -45,7 +45,7 @@ describe("Login", () => {
   });
 
   it("keeps Sign in disabled until both fields are filled", () => {
-    render(<Login onAuthed={vi.fn()} />);
+    render(<Login onAuthed={vi.fn()} onRegister={vi.fn()} />);
     expect(screen.getByRole("button", { name: /sign in/i })).toBeDisabled();
     fill("a@b.com", "");
     expect(screen.getByRole("button", { name: /sign in/i })).toBeDisabled();

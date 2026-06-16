@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { ApiError, clearToken, getToken } from "./api/client";
 import { listProjects } from "./api/projects";
 import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 import { Home } from "./pages/Home";
 import { Dashboard } from "./pages/Dashboard";
 import { Onboarding } from "./pages/Onboarding";
@@ -17,6 +18,10 @@ type Phase = "loading" | "home" | "onboarding" | "dashboard";
 // agent — the data/types/API stay `project`.)
 export function App() {
   const [authed, setAuthed] = useState(() => getToken() !== null);
+  // Which signed-out screen to show. Toggled by the Login/Register footer links; only
+  // consulted while !authed (the auth gate below). Reset to "login" on sign-out
+  // (handleUnauthorized) so a logout never strands the user on the register view.
+  const [authView, setAuthView] = useState<"login" | "register">("login");
   const [phase, setPhase] = useState<Phase>("loading");
   const [agentCount, setAgentCount] = useState(0);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
@@ -24,6 +29,7 @@ export function App() {
   const handleUnauthorized = useCallback(() => {
     clearToken();
     setAuthed(false);
+    setAuthView("login");
   }, []);
 
   // Navigate between phases AND record it in browser history, so the browser Back/
@@ -81,7 +87,18 @@ export function App() {
     };
   }, [authed, handleUnauthorized]);
 
-  if (!authed) return <Login onAuthed={() => setAuthed(true)} />;
+  if (!authed)
+    return authView === "register" ? (
+      <Register
+        onAuthed={() => setAuthed(true)}
+        onSignIn={() => setAuthView("login")}
+      />
+    ) : (
+      <Login
+        onAuthed={() => setAuthed(true)}
+        onRegister={() => setAuthView("register")}
+      />
+    );
 
   if (phase === "loading") {
     return (
