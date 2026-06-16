@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { App } from "../../App";
-import { ApiError, clearToken, setToken } from "../../api/client";
+import { ApiError, clearToken, getToken, setToken } from "../../api/client";
 import { VALUE_PROP } from "../../lib/valueProp";
 import { projectsFixture, savingsFixture, chatHistoryFixture } from "../../test/fixtures";
 
@@ -86,6 +86,18 @@ describe("App routing", () => {
     vi.mocked(listProjects).mockRejectedValue(new ApiError(401, "expired"));
     render(<App />);
     expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it("logging out from the home hub clears the token and returns to Login", async () => {
+    setToken("jwt");
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+    await screen.findByRole("heading", { name: VALUE_PROP.headline });
+
+    fireEvent.click(screen.getByRole("button", { name: /log out/i }));
+
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    expect(getToken()).toBeNull();
   });
 });
 

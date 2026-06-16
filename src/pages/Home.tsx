@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { LogOut } from "lucide-react";
 import { WelcomeSection } from "../components/home/WelcomeSection";
 import { AgentsSection } from "../components/home/AgentsSection";
 import { CreateAgentSection } from "../components/home/CreateAgentSection";
@@ -19,10 +20,12 @@ export function Home({
   agentCount,
   onViewAgents,
   onCreateAgent,
+  onLogout,
 }: {
   agentCount: number;
   onViewAgents: () => void;
   onCreateAgent: () => void;
+  onLogout: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<string>(SECTIONS[0].id);
@@ -62,6 +65,16 @@ export function Home({
           <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
         </span>
         <span className="font-semibold tracking-tight">ModelMatch</span>
+      </button>
+
+      {/* fixed sign-out (top-right), mirroring the brand mark */}
+      <button
+        onClick={onLogout}
+        className="fixed right-5 top-5 z-20 flex items-center gap-2 rounded-md border border-border bg-panel px-3 py-1.5 text-sm text-muted transition-colors hover:border-muted hover:text-gray-100"
+        aria-label="Log out"
+      >
+        <LogOut size={15} />
+        <span className="hidden sm:inline">Log out</span>
       </button>
 
       {/* right-side section dots */}
