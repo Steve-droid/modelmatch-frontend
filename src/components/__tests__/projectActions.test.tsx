@@ -96,6 +96,29 @@ describe("ProjectActions", () => {
     expect(onChanged).toHaveBeenCalled();
   });
 
+  it("shows Bedrock IAM guidance when editing a Nova project", async () => {
+    const novaProject = {
+      ...project,
+      selectedOptionModel: "Nova 2 Lite",
+    };
+    vi.mocked(getJenkins).mockResolvedValue({
+      projectId: 1,
+      baseUrl: "http://old.jenkins",
+      jobName: "old/job",
+      status: "configured",
+    });
+
+    render(<ProjectActions project={novaProject} onChanged={vi.fn()} onDeleted={vi.fn()} />);
+
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit jenkins/i }));
+
+    await screen.findByLabelText("Jenkins base URL");
+    expect(screen.queryByText("modelmatch-model-api-key")).not.toBeInTheDocument();
+    expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
+    expect(screen.getByText(/do not add modelmatch-model-api-key/i)).toBeInTheDocument();
+  });
+
   it("surfaces a non-404 failure to load the Jenkins connection (no blank form)", async () => {
     vi.mocked(getJenkins).mockRejectedValue(new ApiError(500, "db down"));
     render(<ProjectActions project={project} onChanged={vi.fn()} onDeleted={vi.fn()} />);
