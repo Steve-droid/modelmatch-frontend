@@ -15,6 +15,10 @@ vi.mock("../../api/savings", () => ({
 import { getSavings } from "../../api/savings";
 vi.mock("../../api/chat", () => ({ getChatHistory: vi.fn(), postChat: vi.fn() }));
 import { getChatHistory } from "../../api/chat";
+// The signed-out screens call the real login/register; stub them so the routing tests
+// can drive the auth toggle + onAuthed hand-off without a backend.
+vi.mock("../../api/auth", () => ({ login: vi.fn(), register: vi.fn() }));
+import { login, register } from "../../api/auth";
 
 beforeEach(() => {
   clearToken();
@@ -25,6 +29,8 @@ beforeEach(() => {
   vi.mocked(listProjects).mockReset();
   vi.mocked(getSavings).mockReset();
   vi.mocked(getChatHistory).mockReset();
+  vi.mocked(login).mockReset();
+  vi.mocked(register).mockReset();
 });
 
 describe("App routing", () => {
@@ -80,5 +86,55 @@ describe("App routing", () => {
     vi.mocked(listProjects).mockRejectedValue(new ApiError(401, "expired"));
     render(<App />);
     expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
+  });
+});
+
+describe("App auth-view toggle", () => {
+  function fillRegister(email: string, password: string) {
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: email } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: password } });
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
+      target: { value: password },
+    });
+  }
+
+  it("the Login 'Sign up' link switches to the Register view", () => {
+    render(<App />);
+    expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
+
+    // Register is the only auth screen with a confirm-password field + Create account.
+    expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
+  });
+
+  it("Register's onAuthed runs the SAME authed → home/project-probe flow as Login", async () => {
+    // register → auto-login resolves a token → onAuthed → the projects probe → home hub,
+    // exactly like the Login path.
+    vi.mocked(register).mockResolvedValue({ id: 1, email: "new@example.com" });
+    vi.mocked(login).mockResolvedValue({ accessToken: "jwt-reg", tokenType: "bearer" });
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    fillRegister("new@example.com", "hunter2");
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(
+      await screen.findByRole("heading", { name: VALUE_PROP.headline }),
+    ).toBeInTheDocument();
+    expect(listProjects).toHaveBeenCalled();
+  });
+
+  it("Register's 'Sign in' link toggles back to the Login view", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /sign up/i }));
+    expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 });

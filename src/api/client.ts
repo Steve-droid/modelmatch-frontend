@@ -30,11 +30,22 @@ export class ApiError extends Error {
 }
 
 // Turn a non-2xx response into an ApiError carrying the backend's `detail` (if any).
+// A FastAPI 422 `detail` is an ARRAY of validation errors ({ type, loc, msg }) — join
+// their `.msg` fields into one readable string; a plain string `detail` (e.g. a login
+// 401) is used as-is.
 async function toApiError(res: Response): Promise<ApiError> {
   let detail = res.statusText;
   try {
     const body = await res.json();
-    if (body?.detail) detail = body.detail;
+    if (Array.isArray(body?.detail)) {
+      const msg = body.detail
+        .map((d: { msg?: string }) => d?.msg)
+        .filter(Boolean)
+        .join("; ");
+      if (msg) detail = msg;
+    } else if (body?.detail) {
+      detail = body.detail;
+    }
   } catch {
     /* non-JSON error body — keep the status text */
   }

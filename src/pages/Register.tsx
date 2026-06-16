@@ -1,39 +1,59 @@
 import { useState } from "react";
-import { Loader2, LogIn } from "lucide-react";
-import { login } from "../api/auth";
+import { Loader2, UserPlus } from "lucide-react";
+import { login, register } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
 import { VALUE_PROP } from "../lib/valueProp";
 
-// Sign-in screen. Exchanges email + password for a JWT, persists it, then hands off
-// to the dashboard. Compact dark card in the Command-Center language — not a landing
-// page. Replaces the out-of-band setToken bootstrap used through S14.
-export function Login({
+// Sign-up screen. Creates the account, then logs in to obtain a JWT (register itself
+// returns the new user, not a token) and hands off to the app — same auto-land as Login.
+// Mirrors the Login card in the Command-Center language; onSignIn returns to the Login
+// page for an existing account.
+export function Register({
   onAuthed,
-  onRegister,
+  onSignIn,
 }: {
   onAuthed: () => void;
-  onRegister: () => void;
+  onSignIn: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The account was created but the chained auto-login failed — a recoverable state the
+  // user can resolve by signing in (distinct from a register failure, where there's no
+  // account yet). Renders a reassuring notice + a "Go to sign in" affordance.
+  const [registeredNeedsLogin, setRegisteredNeedsLogin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = email.trim() !== "" && password !== "" && !submitting;
+  const passwordsMatch = confirm === "" || password === confirm;
+  const canSubmit =
+    email.trim() !== "" && password !== "" && password === confirm && !submitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
+    setRegisteredNeedsLogin(false);
+    let registered = false;
     try {
+      await register(email.trim(), password);
+      registered = true;
+      // Register returns { id, email } — no token. Log in to obtain the JWT, then
+      // persist it and land exactly like the Login flow (auto sign-in after sign-up).
       const { accessToken } = await login(email.trim(), password);
       setToken(accessToken);
       onAuthed();
     } catch (err: unknown) {
-      if (err instanceof ApiError && err.status === 401)
-        setError("Invalid email or password.");
+      // The account WAS created but the auto-login step failed — don't make it look like
+      // sign-up failed; reassure the user and point them at sign-in.
+      if (registered) {
+        setRegisteredNeedsLogin(true);
+      } else if (err instanceof ApiError && err.status === 409)
+        setError("That email is already registered. Try signing in instead.");
+      else if (err instanceof ApiError && err.status === 422)
+        setError("Please enter a valid email and password.");
       else if (err instanceof ApiError) setError(err.message);
       else setError("Could not reach the backend.");
     } finally {
@@ -71,7 +91,7 @@ export function Login({
             Password
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
@@ -79,9 +99,38 @@ export function Login({
             />
           </label>
 
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+            Confirm password
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
+              placeholder="••••••••"
+            />
+          </label>
+
+          {!passwordsMatch && (
+            <div className="text-xs text-unrated">Passwords don't match.</div>
+          )}
+
           {error && (
             <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
               {error}
+            </div>
+          )}
+
+          {registeredNeedsLogin && (
+            <div className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-muted">
+              Your account was created, but we couldn't sign you in automatically.{" "}
+              <button
+                type="button"
+                onClick={onSignIn}
+                className="font-medium text-accent transition-opacity hover:opacity-90"
+              >
+                Go to sign in
+              </button>
             </div>
           )}
 
@@ -93,20 +142,20 @@ export function Login({
             {submitting ? (
               <Loader2 size={15} className="animate-spin" />
             ) : (
-              <LogIn size={15} />
+              <UserPlus size={15} />
             )}
-            Sign in
+            Create account
           </button>
         </form>
 
         <div className="mt-4 text-center text-xs text-muted">
-          Don't have an account?{" "}
+          Already have an account?{" "}
           <button
             type="button"
-            onClick={onRegister}
+            onClick={onSignIn}
             className="font-medium text-accent transition-opacity hover:opacity-90"
           >
-            Sign up
+            Sign in
           </button>
         </div>
       </div>
