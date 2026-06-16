@@ -32,6 +32,10 @@ export function App() {
     setAuthView("login");
   }, []);
 
+  // Deliberate sign-out from the home hub. Identical session-clear to the 401 path
+  // (drop the token, fall back to Login) — aliased so the intent reads clearly.
+  const handleLogout = handleUnauthorized;
+
   // Navigate between phases AND record it in browser history, so the browser Back/
   // Forward buttons move through the app (e.g. dashboard → home) instead of leaving the
   // site entirely. No router yet — this is the minimal history integration.
@@ -115,6 +119,7 @@ export function App() {
         agentCount={agentCount}
         onViewAgents={() => go("dashboard")}
         onCreateAgent={() => go("onboarding")}
+        onLogout={handleLogout}
       />
     );
   }
