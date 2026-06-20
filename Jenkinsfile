@@ -1,4 +1,5 @@
-// modelmatch-frontend CI/CD pipeline (P17 — the first real product pipeline).
+// modelmatch-frontend CI/CD pipeline (P17 — the first real product pipeline; test
+// taxonomy refined in P31).
 //
 // Runs on the graded persistent Jenkins controller as a MULTIBRANCH job. Every branch
 // runs the full validation flow (build + 3 test types + security gates); only `main`
@@ -7,7 +8,13 @@
 //   Source -> Build -> Static/dep gate (eslint + tsc; npm audit report-only)
 //     -> Test (Vitest unit/component) -> Package (build the FE image)
 //     -> Trivy image scan (gate CRITICAL + HIGH; .trivyignore for documented waivers)
-//     -> Integration (Vitest + RTL + MSW, no containers)
+//     -> FE contract tests (Vitest + RTL + MSW, no containers)
+//     -> Container Integration (FE candidate image ↔ pinned backend dependency:
+//             (a) curl/python server-side smoke — nginx serves the SPA, /config.js
+//             embeds the intended API_BASE_URL, CORS preflight + a real cross-origin
+//             round-trip; (b) one tiny Playwright spec — the SPA actually bootstraps
+//             in chromium using window.__APP_CONFIG__ and reaches /readyz from the
+//             page context. NOT the happy path — that's the next stage.)
 //     -> E2E (Playwright vs a THROWAWAY compose stack FE-image+BE+Postgres,
 //             empty volume -> migrate+seed -> down -v; fake-LLM only, no e2e-live)
 //     -> [main only] Tag (annotated SemVer) -> Publish (ECR) -> Deploy (gitops bump)
@@ -158,9 +165,82 @@ pipeline {
       }
     }
 
-    stage('Integration (Vitest+RTL+MSW)') {
-      // Network-level tests against MSW — no containers.
+    stage('FE contract tests (Vitest+RTL+MSW)') {
+      // Fast UI/client contract coverage: network-level tests against MSW — no
+      // containers. This is NOT the integration gate (P31): the TEST CODE imports the
+      // SPA components directly in jsdom, with the network mocked. It catches contract
+      // regressions cheaply, but it cannot prove the freshly-built FE IMAGE works (see
+      // the Container Integration stage for that).
       steps { runNode('npm run test:integration') }
+    }
+
+    stage('Container Integration (FE image, boundary smoke)') {
+      // P31 boundary smoke: prove the freshly-built frontend IMAGE (nginx + the SPA
+      // assets + the /config.js runtime generator) actually serves the SPA, embeds the
+      // intended API_BASE_URL, can be reached cross-origin by the pinned backend
+      // dependency, AND that the SPA itself bootstraps in a real browser using
+      // window.__APP_CONFIG__ and can reach the backend from page context. Two thin
+      // sub-smokes against the same compose stack:
+      //   (a) ci/integration-smoke.sh — curl/python server-side wiring (nginx serves
+      //       the SPA, /config.js embeds the URL, CORS preflight + cross-origin login).
+      //   (b) playwright.config.container-integration.ts — ONE browser spec that
+      //       loads /, reads window.__APP_CONFIG__.apiBaseUrl, and fetches /readyz
+      //       from page context. This is NOT the happy-path E2E (that's the next
+      //       stage); it's the smallest browser-side check that the SPA boots.
+      // Isolated compose project name + free ports + `down -v` cleanup. Fake-LLM only.
+      steps {
+        script {
+          def ports = sh(script: './ci/free-ports.sh 2', returnStdout: true).trim().split(/\s+/)
+          String fePort = ports[0]
+          String bePort = ports[1]
+          String jwt = sh(script: 'openssl rand -hex 32', returnStdout: true).trim()
+
+          withEnv([
+            "COMPOSE_PROJECT_NAME=mm-fe-cint-${env.RUN_ID}",
+            "FRONTEND_IMAGE=${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_CANDIDATE}",
+            "BACKEND_IMAGE=${env.ECR_REGISTRY}/${env.E2E_BACKEND_REPO}:${env.E2E_BACKEND_TAG}",
+            "JWT_SECRET=${jwt}",
+            "FRONTEND_PORT=${fePort}",
+            "BACKEND_PORT=${bePort}",
+            "API_BASE_URL=http://localhost:${bePort}",    // baked into /config.js by the FE entrypoint
+            "PUBLIC_BASE_URL=http://localhost:${bePort}",
+            "CORS_ALLOW_ORIGINS=http://localhost:${fePort}",
+          ]) {
+            // ECR login so compose can pull the pinned backend image (instance role).
+            sh '''
+              set -eu
+              aws ecr get-login-password --region "$AWS_DEFAULT_REGION" \
+                | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            '''
+            sh './ci/e2e-stack.sh up'
+            // (a) server-side curl/python smoke.
+            sh """
+              set -eu
+              E2E_BASE_URL="http://localhost:${fePort}" \
+                E2E_API_BASE="http://localhost:${bePort}" \
+                ./ci/integration-smoke.sh
+            """
+            // (b) browser-side bootstrap check — reuses the Playwright image + the
+            // workspace's node_modules (already populated by the Build stage's
+            // `npm ci`), same pattern as the E2E stage below.
+            sh '''
+              set -eu
+              docker run --rm --network host \
+                -u "$(id -u):$(id -g)" -e HOME=/tmp \
+                -e E2E_BASE_URL="http://localhost:${FRONTEND_PORT}" \
+                -e E2E_API_BASE="http://localhost:${BACKEND_PORT}" \
+                -v "$WORKSPACE":/work -w /work \
+                "$PLAYWRIGHT_IMAGE" \
+                npx playwright test --config playwright.config.container-integration.ts
+            '''
+          }
+        }
+      }
+      post {
+        always {
+          sh 'COMPOSE_PROJECT_NAME=mm-fe-cint-${RUN_ID} ./ci/e2e-stack.sh down || true'
+        }
+      }
     }
 
     stage('E2E (throwaway compose)') {

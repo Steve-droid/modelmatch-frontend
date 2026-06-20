@@ -79,7 +79,7 @@ backend at **`api.<ip>.sslip.io`** — both derive from the single ingress ELB I
 | **Charts / UI**      | Recharts · Tailwind CSS (dark-mode default) |
 | **Containerization** | Docker (multi-stage, non-root) · nginx-unprivileged (uid 101, port 8080) → ECR |
 | **CI/CD**            | Jenkins multibranch pipeline (`Jenkinsfile`, P17) — build · 3 test types · Trivy · release tail |
-| **Testing**          | Vitest (unit/component) · Vitest + RTL + MSW (integration) · Playwright (E2E) |
+| **Testing**          | Vitest (unit/component + RTL+MSW contract) · Container Integration (FE image boundary smoke) · Playwright (E2E) |
 | **Config**           | env-driven: `VITE_*` (dev) / templated `/config.js` injected by nginx (prod) |
 
 ## Repository Structure
@@ -126,8 +126,15 @@ npm run dev            # Vite dev server on :5173
 npm run build          # tsc && vite build (output served by nginx in the image)
 npm run lint           # ESLint
 npm run typecheck      # tsc --noEmit
-npm test               # Vitest (unit/component)
-npm run test:integration   # Vitest + RTL + MSW (network-level, no containers)
+npm test               # Vitest (unit/component) — fast contract checks
+npm run test:integration   # Vitest + RTL + MSW (UI/client contract, no containers)
+# Container Integration (P31) lives in CI only: the freshly-built FE image runs behind
+# nginx against a pinned backend dependency from ci/pipeline.env. Two thin sub-smokes:
+#   (a) ci/integration-smoke.sh — curl/python: nginx serves the SPA, /config.js embeds
+#       API_BASE_URL, CORS preflight + a real cross-origin round-trip.
+#   (b) e2e/container-integration.browser.spec.ts (playwright.config.container-integration.ts)
+#       — ONE Playwright spec: loads /, asserts window.__APP_CONFIG__.apiBaseUrl, and
+#       fetches /readyz from page context. NOT the happy path (that's E2E).
 npm run e2e            # Playwright happy-path (hermetic; auto-starts the dev server)
 ```
 
@@ -193,11 +200,12 @@ graph LR
     C --> D[Test<br/>Vitest unit/component]
     D --> E[Package<br/>FE image]
     E --> F[Trivy scan<br/>CRITICAL+HIGH]
-    F --> G[Integration<br/>Vitest+RTL+MSW]
-    G --> H[E2E<br/>throwaway compose]
-    H --> I[Tag · main]
-    I --> J[Publish ECR · main]
-    J --> K[Deploy<br/>gitops bump · main]
+    F --> G[FE contract tests<br/>Vitest+RTL+MSW]
+    G --> H[Container Integration<br/>FE image · boundary smoke]
+    H --> I[E2E<br/>throwaway compose]
+    I --> J[Tag · main]
+    J --> K[Publish ECR · main]
+    K --> L[Deploy<br/>gitops bump · main]
 ```
 
 The **Deploy** stage bumps `frontend.image.tag` in the [gitops](../modelmatch-gitops) umbrella values;
