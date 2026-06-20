@@ -44,6 +44,51 @@ def runNode(String cmd) {
   """
 }
 
+// Read a piece of git metadata for the notification with a SOFT fallback: a missing
+// .git (checkout failed) or a failed git command yields '' instead of throwing — so
+// the Slack notification still fires even on a pre-checkout / early failure.
+def gitFact(String cmd) {
+  return sh(script: "(${cmd}) 2>/dev/null || true", returnStdout: true).trim()
+}
+
+// Slack notification mirroring the toxictypo template, adapted for GitHub (commit URL
+// is `<repo>/commit/<sha>`, not GitLab's `/-/commit/`; no updateGitlabCommitStatus).
+// `env.FAILED_STAGE` is set at the start of every stage so the failure message can
+// name + link to the stage that broke. Tolerant of git-metadata failures — an early
+// checkout failure still surfaces a job/build/stage Slack notification.
+def notifySlack(boolean ok) {
+  def branchName  = env.BRANCH_NAME ?: (env.JOB_NAME ? env.JOB_NAME.replaceAll('%2F', '/') : 'unknown')
+  def pushedBy    = gitFact('git log -1 --pretty=format:"%an"') ?: 'unknown'
+  def shortCommit = gitFact('git rev-parse --short=7 HEAD')      ?: 'unknown'
+  def fullCommit  = gitFact('git rev-parse HEAD')
+  def commitMsg   = gitFact('git log -1 --pretty=format:"%s"')   ?: '(commit message unavailable)'
+  def repoUrl     = gitFact('git remote get-url origin')
+    .replace('git@github.com:', 'https://github.com/')
+    .replaceAll(/\.git$/, '')
+  // Hide the commit link entirely when either piece is missing — a dangling Markdown
+  // link would render badly in Slack.
+  def commitDisplay = (repoUrl && fullCommit) ? "<${repoUrl}/commit/${fullCommit}|${shortCommit}>" : shortCommit
+  def jobInfo = "${env.JOB_NAME ?: 'unknown-job'} #${env.BUILD_NUMBER ?: '?'}"
+  if (ok) {
+    slackSend channel: '#jenkins-steve', color: 'good', message: """\
+✅ Build passed (${jobInfo})
+Branch: ${branchName}
+Commit: ${commitDisplay}
+Commit message: "${commitMsg}"
+Pushed by: ${pushedBy}"""
+  } else {
+    def stageName = env.FAILED_STAGE ?: 'unknown'
+    def failedStageDisplay = env.BUILD_URL ? "<${env.BUILD_URL}console|${stageName}>" : stageName
+    slackSend channel: '#jenkins-steve', color: 'danger', message: """\
+❌ Build failed (${jobInfo})
+Branch: ${branchName}
+Commit: ${commitDisplay}
+Commit message: "${commitMsg}"
+Pushed by: ${pushedBy}
+Failed Stage: ${failedStageDisplay}"""
+  }
+}
+
 pipeline {
   agent any
 
@@ -60,6 +105,9 @@ pipeline {
   stages {
     stage('Source + config') {
       steps {
+        // Set FAILED_STAGE BEFORE checkout so a checkout failure still attributes correctly
+        // in the Slack failure message (notifySlack reads env.FAILED_STAGE).
+        script { env.FAILED_STAGE = 'Source + config' }
         checkout scm // Multibranch provides the FE read deploy key for the checkout
         script {
           // Load stable non-secret CI config from the repo. Parse into a Map with a
@@ -113,11 +161,15 @@ pipeline {
 
     stage('Build') {
       // npm ci here populates node_modules in the workspace for every later JS stage.
-      steps { runNode('npm ci && npm run build') }
+      steps {
+        script { env.FAILED_STAGE = 'Build' }
+        runNode('npm ci && npm run build')
+      }
     }
 
     stage('Static/dep gate') {
       steps {
+        script { env.FAILED_STAGE = 'Static/dep gate' }
         runNode('npm run lint')      // ESLint — hard gate
         runNode('npm run typecheck') // tsc --noEmit — hard gate
         // npm audit is REPORT-ONLY this slice (noisy transitive advisories); Trivy is the
@@ -127,13 +179,17 @@ pipeline {
     }
 
     stage('Test (unit/component)') {
-      steps { runNode('npm test') }
+      steps {
+        script { env.FAILED_STAGE = 'Test (unit/component)' }
+        runNode('npm test')
+      }
     }
 
     stage('Package') {
       // Build the real artifact: the FE image. Tagged with the per-build candidate tag;
       // only promoted to a published SemVer tag in the main release tail.
       steps {
+        script { env.FAILED_STAGE = 'Package' }
         sh 'docker build -t "$ECR_REGISTRY/$ECR_REPO:$IMAGE_CANDIDATE" .'
       }
     }
@@ -142,6 +198,7 @@ pipeline {
       // Gate on CRITICAL + HIGH. Documented waivers only, via the committed .trivyignore
       // (currently empty — the Dockerfile pins a clean digest-pinned base, no waivers).
       steps {
+        script { env.FAILED_STAGE = 'Trivy image scan' }
         sh '''
           set -eu
           docker run --rm \
@@ -160,7 +217,10 @@ pipeline {
 
     stage('Integration (Vitest+RTL+MSW)') {
       // Network-level tests against MSW — no containers.
-      steps { runNode('npm run test:integration') }
+      steps {
+        script { env.FAILED_STAGE = 'Integration (Vitest+RTL+MSW)' }
+        runNode('npm run test:integration')
+      }
     }
 
     stage('E2E (throwaway compose)') {
@@ -169,6 +229,7 @@ pipeline {
       // only (the compose backend defaults LLM_CLIENT=fake) — never e2e-live.
       steps {
         script {
+          env.FAILED_STAGE = 'E2E (throwaway compose)'
           // Allocate two FREE host ports at runtime (not derived from BUILD_NUMBER, which
           // is only per-branch in Multibranch and would collide across branches). The URLs
           // below are keyed to the backend's actual port; the compose project name + image
@@ -233,6 +294,7 @@ pipeline {
                                            keyFileVariable: 'FE_KEY',
                                            usernameVariable: 'FE_USER')]) {
           script {
+            env.FAILED_STAGE = 'Tag (main)'
             env.RELEASE_VERSION = sh(returnStdout: true, script: '''
               set -eu
               export GIT_SSH_COMMAND="ssh -i $FE_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
@@ -287,6 +349,7 @@ pipeline {
       when { branch 'main' }
       // Promote the scanned candidate image to the published SemVer tag (instance role).
       steps {
+        script { env.FAILED_STAGE = 'Publish (ECR, main)' }
         sh '''
           set -eu
           aws ecr get-login-password --region "$AWS_DEFAULT_REGION" \
@@ -303,6 +366,7 @@ pipeline {
       // The ONLY deploy action: bump frontend.image.tag in the gitops umbrella and push.
       // ArgoCD syncs from there (when a cluster is up). Never a hand kubectl/helm.
       steps {
+        script { env.FAILED_STAGE = 'Deploy (gitops bump, main)' }
         withCredentials([sshUserPrivateKey(credentialsId: env.CRED_GITOPS_KEY,
                                            keyFileVariable: 'GITOPS_KEY',
                                            usernameVariable: 'GITOPS_USER')]) {
@@ -336,6 +400,12 @@ pipeline {
       // Guard on IMAGE_CANDIDATE: it's unset if the build failed before Source+config ran.
       sh 'if [ -n "${IMAGE_CANDIDATE:-}" ]; then docker image rm -f "$ECR_REGISTRY/$ECR_REPO:$IMAGE_CANDIDATE" || true; fi'
     }
-    success { echo "P17 pipeline GREEN on ${env.BRANCH_NAME}" }
+    success {
+      echo "P17 pipeline GREEN on ${env.BRANCH_NAME}"
+      script { notifySlack(true) }
+    }
+    failure {
+      script { notifySlack(false) }
+    }
   }
 }
