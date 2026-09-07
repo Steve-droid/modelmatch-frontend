@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-// Shared chart chrome so the three charts look consistent (one card each — no nesting).
+// Shared chart chrome so the three charts look consistent (one flat panel each — no
+// nesting). Panel titles are Grafana-style: small, uppercase, muted.
 
 export function ChartCard({
   title,
@@ -16,7 +17,7 @@ export function ChartCard({
   return (
     <div className="card">
       <div className="mb-1 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+        <h3 className="text-xs font-medium uppercase tracking-wide text-muted">{title}</h3>
         {hint && <span className="text-xs text-faint">{hint}</span>}
       </div>
       {legend && <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">{legend}</div>}
@@ -39,7 +40,7 @@ export function LegendSwatch({ color, children }: { color: string; children: Rea
 // The dark surface custom tooltips render into.
 export function TooltipBox({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-border bg-panel px-3 py-2 text-xs shadow-lg">
+    <div className="rounded border border-border bg-panel-2 px-3 py-2 text-xs">
       {children}
     </div>
   );
@@ -50,8 +51,8 @@ export const chartMargin = { top: 8, right: 12, left: 8, bottom: 0 } as const;
 
 // Recharts axis styling (faint, no heavy lines) — spread onto <XAxis>/<YAxis>.
 export const axisProps = {
-  stroke: "#5b626d",
-  tick: { fill: "#8b929e", fontSize: 11 },
+  stroke: "#6e7680",
+  tick: { fill: "#9fa7b3", fontSize: 11 },
   tickLine: false,
-  axisLine: { stroke: "#262a31" },
+  axisLine: { stroke: "#2c3235" },
 } as const;

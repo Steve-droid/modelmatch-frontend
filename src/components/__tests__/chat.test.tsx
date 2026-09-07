@@ -39,12 +39,44 @@ describe("RetrievalTraceDetail", () => {
 });
 
 describe("ChatPanel", () => {
-  it("renders the server-seeded opener from history", async () => {
+  it("renders the server-seeded opener from history, grounding shown (F4)", async () => {
     render(<ChatPanel projectId={1} />);
     expect(await screen.findByText(/You've banked \$0.045/)).toBeInTheDocument();
-    // opener's trace is collapsed by default
+    // the opener is the latest answer → its trace is expanded by default
     expect(screen.getByText(/Grounded on 1 source/)).toBeInTheDocument();
+    expect(screen.getByText(/cumulative saved/)).toBeInTheDocument();
+  });
+
+  it("expands only the LATEST answer's trace; earlier answers stay collapsed", async () => {
+    vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
+    render(<ChatPanel projectId={1} />);
+    await screen.findByText(/You've banked/);
+
+    fireEvent.change(screen.getByLabelText("Ask a question"), {
+      target: { value: "which model is cheapest?" },
+    });
+    fireEvent.click(screen.getByLabelText("Send"));
+    await screen.findByText(/Claude Haiku 4.5 is your cheapest/);
+
+    // the new answer's sources are visible …
+    expect(screen.getByText(/claude-haiku-4-5 · ci_review/)).toBeInTheDocument();
+    // … while the older opener's collapsed again
     expect(screen.queryByText(/cumulative saved/)).not.toBeInTheDocument();
+  });
+
+  it("renders a user turn as a plain query line, not an accented bubble (F4)", async () => {
+    vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
+    render(<ChatPanel projectId={1} />);
+    await screen.findByText(/You've banked/);
+
+    fireEvent.change(screen.getByLabelText("Ask a question"), {
+      target: { value: "how much did I save?" },
+    });
+    fireEvent.click(screen.getByLabelText("Send"));
+
+    const turn = screen.getByText("how much did I save?").parentElement!;
+    expect(turn.className).not.toMatch(/bg-accent/);
+    expect(turn.className).not.toMatch(/border/);
   });
 
   it("disables send for an empty question and shows the empty/loading flow", async () => {

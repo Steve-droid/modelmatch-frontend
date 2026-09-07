@@ -2,7 +2,11 @@ import { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
 import type { RecommendationResult } from "../types/recommend";
-import { createProject, type CreateProjectInput } from "../api/projects";
+import {
+  createProject,
+  updateProject,
+  type CreateProjectInput,
+} from "../api/projects";
 import { connectJenkins } from "../api/jenkins";
 import { RecommenderForm } from "../components/onboarding/RecommenderForm";
 import { RecommendationView } from "../components/onboarding/RecommendationView";
@@ -39,8 +43,20 @@ export function Onboarding({
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [draft, setDraft] = useState<CreateProjectInput | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
+  // What the user typed at the Jenkins step, so stepping back and forward again
+  // doesn't hand them empty fields.
+  const [jenkins, setJenkins] = useState({ baseUrl: "", jobName: "" });
 
   const activeIndex = STEPS.findIndex((s) => s.key === step);
+
+  // A step is reachable once the work it depends on exists: the pick unlocks the
+  // Jenkins step, and creating + connecting the project unlocks CI setup. This is what
+  // makes the stepper navigable in BOTH directions instead of a one-way road.
+  const reachable: Record<Step, boolean> = {
+    recommend: true,
+    jenkins: draft != null,
+    cisetup: projectId != null,
+  };
   const selectedOption =
     result?.shortlist.find((opt) => opt.recommendationOptionId === draft?.selectedOptionId) ??
     null;
@@ -58,13 +74,30 @@ export function Onboarding({
       setProjectId(pid);
     }
     await connectJenkins(pid, input);
+    setJenkins(input);
     setStep("cisetup");
+  }
+
+  // The pick step's submit. Before the project exists this just stashes the draft
+  // (defer-create). If the user stepped BACK here after the project was created, the
+  // same action has to persist the new pick instead, a PATCH like the dashboard's
+  // re-pick, or the change would silently not stick.
+  async function handlePick(pick: CreateProjectInput) {
+    setDraft(pick);
+    if (projectId != null) {
+      await updateProject(projectId, {
+        name: pick.name,
+        selectedOptionId: pick.selectedOptionId,
+        baselineModelId: pick.baselineModelId,
+      });
+    }
+    setStep("jenkins");
   }
 
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={onHome}
@@ -91,8 +124,12 @@ export function Onboarding({
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6 sm:px-6">
-        <Stepper activeIndex={activeIndex} />
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+        <Stepper
+          activeIndex={activeIndex}
+          reachable={reachable}
+          onStep={setStep}
+        />
 
         {step === "recommend" &&
           (result === null ? (
@@ -101,7 +138,7 @@ export function Onboarding({
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => setResult(null)}
-                className="flex items-center gap-1.5 self-start text-xs font-medium text-muted transition-colors hover:text-gray-100"
+                className="flex items-center gap-1.5 self-start text-sm font-medium text-muted transition-colors hover:text-gray-100"
               >
                 <ArrowLeft size={13} />
                 Refine inputs
@@ -110,10 +147,9 @@ export function Onboarding({
                 result={result}
                 onUnauthorized={onUnauthorized}
                 submitLabel="Continue"
-                onSubmit={async (pick) => {
-                  setDraft(pick); // defer-create: hold the pick, create at Jenkins step
-                  setStep("jenkins");
-                }}
+                initialName={draft?.name ?? ""}
+                initialSelectedOptionId={draft?.selectedOptionId}
+                onSubmit={handlePick}
               />
             </div>
           ))}
@@ -123,6 +159,8 @@ export function Onboarding({
             onUnauthorized={onUnauthorized}
             onSubmit={handleConnect}
             runtimeHint={runtimeHint}
+            initialBaseUrl={jenkins.baseUrl}
+            initialJobName={jenkins.jobName}
           />
         )}
 
@@ -138,26 +176,52 @@ export function Onboarding({
   );
 }
 
-function Stepper({ activeIndex }: { activeIndex: number }) {
+// The wizard's navigation, not just its progress read-out: any step the user has
+// already unlocked can be clicked, in either direction. Steps that aren't reachable
+// yet stay disabled so nobody lands on a screen with nothing behind it.
+function Stepper({
+  activeIndex,
+  reachable,
+  onStep,
+}: {
+  activeIndex: number;
+  reachable: Record<Step, boolean>;
+  onStep: (step: Step) => void;
+}) {
   return (
-    <ol className="flex items-center gap-2 text-xs">
+    <ol className="flex items-center gap-2 text-sm">
       {STEPS.map((s, i) => {
         const done = i < activeIndex;
         const active = i === activeIndex;
+        const canGo = reachable[s.key] && !active;
         return (
           <li key={s.key} className="flex items-center gap-2">
-            <span
-              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium ${
+            <button
+              type="button"
+              onClick={() => canGo && onStep(s.key)}
+              disabled={!canGo}
+              aria-current={active ? "step" : undefined}
+              aria-label={`Step ${i + 1}: ${s.label}`}
+              title={
+                canGo
+                  ? `Go to ${s.label}`
+                  : active
+                    ? undefined
+                    : `${s.label} unlocks once you finish the previous step`
+              }
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-medium transition-colors ${
                 active
                   ? "border-accent/50 bg-accent/15 text-gray-100"
                   : done
-                    ? "border-banked/40 bg-banked/10 text-banked"
-                    : "border-border bg-panel-2 text-faint"
+                    ? "border-banked/40 bg-banked/10 text-banked hover:border-banked"
+                    : reachable[s.key]
+                      ? "border-border bg-panel-2 text-muted hover:text-gray-100"
+                      : "cursor-not-allowed border-border bg-panel-2 text-faint"
               }`}
             >
-              <span className="num">{done ? <Check size={12} /> : i + 1}</span>
+              <span className="num">{done ? <Check size={13} /> : i + 1}</span>
               {s.label}
-            </span>
+            </button>
             {i < STEPS.length - 1 && (
               <span className={`h-px w-4 ${done ? "bg-banked/40" : "bg-border"}`} />
             )}

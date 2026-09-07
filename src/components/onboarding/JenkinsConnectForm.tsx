@@ -72,8 +72,8 @@ export function JenkinsConnectForm({
           <Plug size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Point ModelMatch at your Jenkins</div>
-          <div className="text-xs text-faint">
+          <div className="text-lg font-semibold">Point ModelMatch at your Jenkins</div>
+          <div className="text-sm text-faint">
             {copy.intro}
           </div>
         </div>
@@ -114,7 +114,7 @@ export function JenkinsConnectForm({
           {copy.credentials.map((c) => (
             <li key={c.id} className="text-xs">
               <code className="num text-gray-100">{c.id}</code>
-              <span className="text-faint"> — {c.desc}</span>
+              <span className="text-faint">, {c.desc}</span>
             </li>
           ))}
         </ul>
@@ -134,7 +134,7 @@ export function JenkinsConnectForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plug size={15} />}
         {submitLabel}
@@ -144,12 +144,12 @@ export function JenkinsConnectForm({
 }
 
 const inputCls =
-  "rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none";
+  "rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-muted">{label}</span>
+      <span className="text-sm font-medium text-muted">{label}</span>
       {children}
     </label>
   );
@@ -169,7 +169,7 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
   if (!runtimeHint) {
     return {
       intro:
-        "ModelMatch only needs the job's location — runtime auth stays in Jenkins or AWS, not in ModelMatch.",
+        "ModelMatch only needs the job's location. Runtime auth stays in Jenkins or AWS, never in ModelMatch.",
       heading: 'In Jenkins, add these runtime requirements:',
       credentials: [
         {
@@ -187,7 +187,7 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
     const model = runtimeHint.modelLabel ?? "this Bedrock model";
     return {
       intro:
-        "ModelMatch only needs the job's location — Bedrock access stays on the Jenkins node's AWS IAM identity.",
+        "ModelMatch only needs the job's location. Bedrock access stays on the Jenkins node's AWS IAM identity.",
       heading: 'In Jenkins, add this "Secret text" credential:',
       credentials: [ciToken],
       note: `${model} runs through ${runtimeHint.providerLabel}. Do not add modelmatch-model-api-key for this runtime; the Jenkins node or agent needs AWS IAM access for Bedrock instead.`,
@@ -196,12 +196,12 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
 
   return {
     intro:
-      "ModelMatch only needs the job's location — your provider key stays in Jenkins.",
+      "ModelMatch only needs the job's location. Your provider key stays in Jenkins.",
     heading: 'In Jenkins, add these "Secret text" credentials:',
     credentials: [
       {
         id: "modelmatch-model-api-key",
-        desc: `your ${runtimeHint.providerLabel} API key — the CI stage binds it as ${runtimeHint.credentialEnvVar}`,
+        desc: `your ${runtimeHint.providerLabel} API key, bound by the CI stage as ${runtimeHint.credentialEnvVar}`,
       },
       ciToken,
     ],

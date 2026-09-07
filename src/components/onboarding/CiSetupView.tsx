@@ -69,8 +69,8 @@ export function CiSetupView({
           <Terminal size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Add this stage to your pipeline</div>
-          <div className="text-xs text-faint">
+          <div className="text-lg font-semibold">Add this stage to your pipeline</div>
+          <div className="text-sm text-faint">
             Runs the CI code-review agent and ingests each run's savings.
           </div>
         </div>
@@ -105,7 +105,7 @@ export function CiSetupView({
             <div className="rounded-md border border-unrated/40 bg-unrated/10 px-3 py-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-unrated">
                 <ShieldAlert size={13} />
-                CI token — shown once. Copy it now; it can't be retrieved again.
+                CI token, shown once. Copy it now, it can't be retrieved again.
               </div>
               <code className="num mt-1 block break-all text-sm text-gray-100">
                 {setup.token}
@@ -115,7 +115,7 @@ export function CiSetupView({
             <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5">
               <p className="text-xs text-muted">
                 CI token was already minted for this project and can't be shown again. If
-                you didn't copy it, regenerate a fresh one — the old token stops working.
+                you didn't copy it, regenerate a fresh one. The old token stops working.
               </p>
               <button
                 type="button"
@@ -132,12 +132,12 @@ export function CiSetupView({
           {/* the snippet */}
           <div>
             <div className="mb-1 text-xs font-medium text-muted">Jenkins stage</div>
-            <pre className="max-h-72 overflow-auto rounded-md border border-border bg-panel-2 p-3 text-xs leading-relaxed text-gray-200">
+            <pre className="max-h-[26rem] overflow-auto rounded-md border border-border bg-panel-2 p-4 text-xs leading-relaxed text-gray-200">
               <code>{setup.snippet}</code>
             </pre>
           </div>
 
-          <dl className="grid grid-cols-1 gap-1 text-xs sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
             <div className="flex gap-1.5">
               <dt className="text-faint">Image:</dt>
               <dd className="num truncate text-signal">{setup.imageRef}</dd>
@@ -151,7 +151,7 @@ export function CiSetupView({
           <button
             type="button"
             onClick={onDone}
-            className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             Go to dashboard
             <ArrowRight size={15} />

@@ -15,7 +15,7 @@ import { qualityOf } from "./StatusBadge";
 import { ChartCard, TooltipBox, axisProps, chartMargin } from "./chart-bits";
 
 // Cost per run, each bar coloured by quality_ok — the VISUAL "quality-risk excluded":
-// green = banked, red = quality risk (excluded from the headline), amber = unrated.
+// green = banked, red = quality risk (excluded from the headline), orange = unrated.
 const COLOR = (q: boolean | null) =>
   q === true ? chartColors.banked : q === false ? chartColors.risk : chartColors.unrated;
 
@@ -36,7 +36,7 @@ export function CostPerRunBar({ series }: { series: SavingsSeriesPoint[] }) {
           <XAxis dataKey="label" {...axisProps} />
           <YAxis {...axisProps} width={60} tickFormatter={formatUSDAxis} />
           <Tooltip cursor={{ fill: "#ffffff08" }} content={<BarTooltip />} />
-          <Bar dataKey="actual" radius={[3, 3, 0, 0]}>
+          <Bar dataKey="actual" radius={[2, 2, 0, 0]} fillOpacity={0.85}>
             {data.map((d, i) => (
               <Cell key={i} fill={COLOR(d.qualityOk)} />
             ))}
@@ -64,8 +64,8 @@ function BarTooltip({
         {d.build ? ` · build ${d.build}` : ""}
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-gray-300">Actual cost</span>
-        <span className="num text-gray-100">{formatUSD(d.actual)}</span>
+        <span className="text-muted">Actual cost</span>
+        <span className="num text-fg">{formatUSD(d.actual)}</span>
       </div>
       <div className={`mt-0.5 ${q.className}`}>{q.label}</div>
     </TooltipBox>

@@ -1,16 +1,46 @@
 import type { ReactNode } from "react";
-import { useCountUp } from "../lib/useCountUp";
 
-// A single KPI card (no nested cards). Either pass a ready `value` string, or pass
-// `countTo` + `format` to animate a number up on mount (subtle count-up motion).
+// Dashboard stat primitives. Numbers render final — no count-up motion (P38: calm,
+// Grafana-like). Two shapes:
+//   • SavingsHero — the one big number the product is about (cumulative saved), with
+//     the "% vs baseline" line and the banked / quality-risk / unrated split under it.
+//   • KpiCard — a compact stat in the single-row strip beside it (no icons, no
+//     sparklines; the label is a small uppercase Grafana-style panel title).
+
+export function SavingsHero({
+  label,
+  value,
+  accent = "text-banked",
+  vsBaseline,
+  split,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+  vsBaseline: ReactNode;
+  split: ReactNode;
+}) {
+  return (
+    <div className="card flex flex-col gap-1.5">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted">
+        {label}
+      </span>
+      <div className={`num text-5xl font-semibold leading-none ${accent}`}>
+        {value}
+      </div>
+      <div className="text-sm text-fg">{vsBaseline}</div>
+      <div className="text-xs text-muted">{split}</div>
+    </div>
+  );
+}
+
 interface KpiCardProps {
   label: string;
   value?: string;
   countTo?: number;
   format?: (n: number) => string;
   sub?: ReactNode;
-  icon?: ReactNode;
-  accent?: string; // tailwind text-* colour for the headline figure
+  accent?: string; // tailwind text-* colour for the figure
 }
 
 export function KpiCard({
@@ -19,22 +49,17 @@ export function KpiCard({
   countTo,
   format,
   sub,
-  icon,
-  accent = "text-gray-100",
+  accent = "text-fg",
 }: KpiCardProps) {
-  const animated = useCountUp(countTo ?? 0);
   const display =
-    countTo !== undefined && format ? format(animated) : (value ?? "—");
+    countTo !== undefined && format ? format(countTo) : (value ?? "—");
 
   return (
-    <div className="card flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted">
-          {label}
-        </span>
-        {icon && <span className="text-faint">{icon}</span>}
-      </div>
-      <div className={`num text-2xl font-semibold leading-none ${accent}`}>
+    <div className="card flex flex-col gap-1.5">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted">
+        {label}
+      </span>
+      <div className={`num text-xl font-semibold leading-none ${accent}`}>
         {display}
       </div>
       {sub && <div className="text-xs text-muted">{sub}</div>}

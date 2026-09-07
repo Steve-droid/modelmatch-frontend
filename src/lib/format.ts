@@ -18,13 +18,21 @@ export function formatUSD(value: Money | number | null | undefined): string {
   })}`;
 }
 
-/** Compact money for chart axis ticks: trims trailing zeros ($0.06, $0.045, $0.005). */
+/** Compact money for chart axis ticks. Precision ADAPTS to the magnitude so sub-cent
+ *  scales (our per-run costs live around $0.0005–$0.002) don't collapse into repeated
+ *  "$0.001, $0.001, $0, $0" ticks: keep ~3 significant digits, trimming trailing zeros.
+ *  Exactly 0 always renders "$0". */
 export function formatUSDAxis(n: number): string {
   if (Number.isNaN(n)) return "";
   const sign = n < 0 ? "-" : "";
   const abs = Math.abs(n);
+  if (abs === 0) return "$0";
   if (abs >= 1) return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 1 })}`;
-  return `${sign}$${parseFloat(abs.toFixed(3))}`;
+  // first significant decimal place (0.002 → 3, 0.0005 → 4), then 2 more digits of
+  // resolution, capped at the 6 dp the backend stores.
+  const firstSig = Math.ceil(-Math.log10(abs));
+  const dp = Math.min(firstSig + 2, 6);
+  return `${sign}$${parseFloat(abs.toFixed(dp))}`;
 }
 
 /** Parse a money string to a number for charting (null/invalid → 0). */

@@ -67,7 +67,7 @@ export function ProjectActions({
         aria-label="CI-Agent actions"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        className="flex items-center gap-1 rounded-md border border-border bg-panel px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
+        className="flex items-center gap-1 rounded border border-border bg-panel px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-fg"
       >
         <Settings2 size={13} />
       </button>
@@ -75,7 +75,7 @@ export function ProjectActions({
       {menuOpen && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-md border border-border bg-panel-2 py-1 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded border border-border bg-panel-2 py-1"
         >
           <MenuItem icon={<Plug size={13} />} label="Edit Jenkins" onClick={() => open("editJenkins")} />
           <MenuItem icon={<Terminal size={13} />} label="CI setup & token" onClick={() => open("cisetup")} />
@@ -90,7 +90,7 @@ export function ProjectActions({
       )}
 
       {view === "editJenkins" && (
-        <Modal title={`Edit Jenkins — ${project.name}`} onClose={close}>
+        <Modal title={`Edit Jenkins: ${project.name}`} onClose={close}>
           <EditJenkins
             project={project}
             onUnauthorized={onUnauthorized}
@@ -103,7 +103,7 @@ export function ProjectActions({
       )}
 
       {view === "cisetup" && (
-        <Modal title={`CI setup — ${project.name}`} onClose={close}>
+        <Modal title={`CI setup: ${project.name}`} onClose={close}>
           <CiSetupView
             projectId={project.id}
             onUnauthorized={onUnauthorized}
@@ -116,7 +116,7 @@ export function ProjectActions({
       )}
 
       {view === "repick" && (
-        <Modal title={`Re-pick model — ${project.name}`} onClose={close}>
+        <Modal title={`Re-pick model: ${project.name}`} onClose={close}>
           <Repick
             project={project}
             onUnauthorized={onUnauthorized}
@@ -158,7 +158,7 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-medium transition-colors hover:bg-panel ${
-        danger ? "text-risk hover:text-risk" : "text-gray-200 hover:text-gray-100"
+        danger ? "text-risk hover:text-risk" : "text-fg hover:text-fg"
       }`}
     >
       {icon}
@@ -217,7 +217,7 @@ function EditJenkins({
 
   if (loadError) {
     return (
-      <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+      <div className="rounded border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
         {loadError}
       </div>
     );
@@ -268,7 +268,7 @@ function Repick({
     <div className="flex flex-col gap-3">
       <button
         onClick={() => setResult(null)}
-        className="self-start text-xs font-medium text-muted transition-colors hover:text-gray-100"
+        className="self-start text-xs font-medium text-muted transition-colors hover:text-fg"
       >
         ← Refine inputs
       </button>
@@ -319,12 +319,12 @@ function DeleteConfirm({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted">
-        This permanently removes <span className="font-medium text-gray-100">{project.name}</span>{" "}
-        and all of its data — CI runs, savings, findings, the Jenkins connection and chat
+        This permanently removes <span className="font-medium text-fg">{project.name}</span>{" "}
+        and all of its data: CI runs, savings, findings, the Jenkins connection and chat
         history. This can't be undone.
       </p>
       {error && (
-        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+        <div className="rounded border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
           {error}
         </div>
       )}
@@ -332,14 +332,14 @@ function DeleteConfirm({
         <button
           onClick={onCancel}
           disabled={deleting}
-          className="rounded-md border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
+          className="rounded border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-fg disabled:opacity-40"
         >
           Cancel
         </button>
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="flex items-center gap-2 rounded-md bg-risk px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="flex items-center gap-2 rounded bg-risk px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
           Delete CI-Agent

@@ -78,11 +78,11 @@ export function RecommenderForm({
           <Sparkles size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Set up your code-review agent</div>
-          <div className="text-xs text-faint">
+          <div className="text-lg font-semibold">Set up your code-review agent</div>
+          <div className="text-sm text-faint">
             ModelMatch recommends a cost-effective model to review your pull requests in CI,
-            then proves it's good enough by counting the savings against a premium baseline —
-            no LLM in the ranking.
+            then proves it's good enough by counting the savings against a premium
+            baseline. No LLM in the ranking.
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@ export function RecommenderForm({
       <button
         type="submit"
         disabled={taskTypes.length === 0 || submitting}
-        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
         Get recommendation
@@ -143,14 +143,14 @@ function Segmented({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted">{label}</span>
-      <div className="flex min-h-[2.25rem] items-stretch rounded-md border border-border bg-panel-2 p-0.5">
+      <span className="text-sm font-medium text-muted">{label}</span>
+      <div className="flex min-h-[2.75rem] items-stretch rounded-md border border-border bg-panel-2 p-0.5">
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`flex min-w-0 flex-1 items-center justify-center rounded px-2 text-center text-xs font-medium leading-tight transition-colors ${
+            className={`flex min-w-0 flex-1 items-center justify-center rounded px-3 py-2.5 text-center text-sm font-medium leading-tight transition-colors ${
               value === o.value
                 ? "bg-panel text-gray-100"
                 : "text-muted hover:text-gray-200"
