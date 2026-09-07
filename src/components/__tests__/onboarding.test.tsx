@@ -250,7 +250,7 @@ describe("Onboarding defer-create", () => {
     expect(createProject).toHaveBeenCalledTimes(1);
   });
 
-  it("steps BACK to Recommend from the Jenkins step, keeping the pick", async () => {
+  it("steps BACK to Pick model from the Jenkins step, keeping the pick", async () => {
     getRecommendation();
 
     fireEvent.change(await screen.findByLabelText("Project name"), {
@@ -260,7 +260,7 @@ describe("Onboarding defer-create", () => {
     await screen.findByLabelText("Jenkins base URL");
 
     // the stepper is navigation: click step 1 to go back
-    fireEvent.click(screen.getByRole("button", { name: "Step 1: Recommend" }));
+    fireEvent.click(screen.getByRole("button", { name: "Step 1: Pick model" }));
 
     // the pick screen returns with the name still filled in
     expect(await screen.findByLabelText("Project name")).toHaveValue("acme-api");
@@ -285,7 +285,7 @@ describe("Onboarding defer-create", () => {
     await screen.findByText(/shown once/i); // CI-setup step: the project now exists
 
     // step back to the pick and choose the other model
-    fireEvent.click(screen.getByRole("button", { name: "Step 1: Recommend" }));
+    fireEvent.click(screen.getByRole("button", { name: "Step 1: Pick model" }));
     fireEvent.click(await screen.findByText("Nova 2 Lite"));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 

@@ -15,8 +15,11 @@ import { CiSetupView } from "../components/onboarding/CiSetupView";
 import { runtimeHintFromRecommendationOption } from "../components/onboarding/jenkinsRuntime";
 
 type Step = "recommend" | "jenkins" | "cisetup";
+// Labels name what the USER does at each step, not what the system does — "Recommend"
+// read as an instruction to the user, who is the one being recommended TO. The `key`
+// stays "recommend" because it is internal routing, not copy.
 const STEPS: { key: Step; label: string }[] = [
-  { key: "recommend", label: "Recommend" },
+  { key: "recommend", label: "Pick model" },
   { key: "jenkins", label: "Connect Jenkins" },
   { key: "cisetup", label: "CI setup" },
 ];
