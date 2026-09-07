@@ -144,7 +144,7 @@ describe("RecommenderForm", () => {
 describe("RecommendationView", () => {
   it("renders the suggestion, baseline, comparability group and shortlist", () => {
     render(<RecommendationView result={recommendationFixture} onSubmit={okSubmit()} />);
-    expect(screen.getByText(/Compared like-for-like within CodeReviewBench/)).toBeInTheDocument();
+    expect(screen.getByText(/scored on the same benchmark, CodeReviewBench/i)).toBeInTheDocument();
     expect(screen.getByText("Suggested")).toBeInTheDocument();
     expect(screen.getByText("Nova 2 Lite")).toBeInTheDocument(); // the other shortlist option
     expect(screen.getByText(/Claude Sonnet 4.5/)).toBeInTheDocument(); // baseline
@@ -255,7 +255,10 @@ describe("RecommendationView", () => {
     );
   });
 
-  it("states the narrowing from the backend's counts, not from vendor names", () => {
+  it("names the benchmark plainly and does not explain the internal ranked/candidate filter", () => {
+    // The user picks a model; how many catalog rows were filtered out on the way is
+    // our bookkeeping, not their decision. The counts stay in the API response for
+    // operators and the chat, and off this screen.
     const result = {
       ...recommendationFixture,
       comparabilityGroup: {
@@ -266,6 +269,12 @@ describe("RecommendationView", () => {
       },
     };
     render(<RecommendationView result={result} onSubmit={okSubmit()} />);
-    expect(screen.getByText(/Ranked 3 of 16 scored models/i)).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/scored on the same benchmark, RealVuln/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Ranked 3 of 16/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/f3_score/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/comparability/i)).not.toBeInTheDocument();
   });
 });

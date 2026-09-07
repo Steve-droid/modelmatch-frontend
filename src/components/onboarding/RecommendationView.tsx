@@ -94,8 +94,8 @@ export function RecommendationView({
           {comparabilityGroup && (
             <div className="flex items-center gap-1 text-sm text-faint">
               <Layers size={12} />
-              Compared like-for-like within {comparabilityGroup.benchmark} ·{" "}
-              {comparabilityGroup.metric}
+              Every model here is scored on the same benchmark,{" "}
+              {comparabilityGroup.benchmark}
             </div>
           )}
         </div>
@@ -116,19 +116,9 @@ export function RecommendationView({
         </ul>
       ) : (
         <div className="rounded-md border border-unrated/40 bg-unrated/10 px-3 py-2 text-sm text-unrated">
-          No model in this result. Nothing in this benchmark group could be ranked, so
-          try different inputs.
+          No model matched. Try different inputs.
         </div>
       )}
-      {comparabilityGroup?.rankedCount != null &&
-        comparabilityGroup?.candidateCount != null &&
-        comparabilityGroup.rankedCount < comparabilityGroup.candidateCount && (
-          <p className="text-xs text-faint">
-            Ranked {comparabilityGroup.rankedCount} of{" "}
-            {comparabilityGroup.candidateCount} scored models — the rest have no CI
-            agent runtime, and stay in the catalog and the chat.
-          </p>
-        )}
 
       {/* baseline */}
       <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm">
