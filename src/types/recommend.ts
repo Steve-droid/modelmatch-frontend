@@ -16,6 +16,12 @@ export interface RecommendationRequest {
 export interface ComparabilityGroup {
   benchmark: string;
   metric: string;
+  // How many catalog rows this task has, and how many were ranked. They differ when
+  // rows were excluded as not runnable by the CI agent (RECOMMEND_ONLY_RUNNABLE), so
+  // the narrowing can be stated instead of being silent. Optional: a backend older
+  // than P38c omits them.
+  rankedCount?: number | null;
+  candidateCount?: number | null;
 }
 
 export interface RecommendationOption {

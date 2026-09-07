@@ -210,42 +210,62 @@ describe("RecommendationView", () => {
     await waitFor(() => expect(onUnauthorized).toHaveBeenCalled());
   });
 
-  it("excludes data-only providers (OpenAI) from the selectable options", async () => {
-    // Suggested is OpenAI (data-only, no CI adapter); the only runnable option is Anthropic.
-    const openAiSuggested = {
+  it("offers every ranked option — runnable is the backend's call, not a vendor allowlist", async () => {
+    // Regression: this view used to re-filter the shortlist against a hardcoded
+    // vendor allowlist ("anthropic" | "google" | "amazon"). That was a SECOND source
+    // of truth for "runnable", and it went stale the moment a new provider was
+    // enabled — it hid DeepSeek V4 Flash, the TOP-ranked security pick, and silently
+    // promoted the runner-up (Gemini 3.5 Flash) in its place. The backend already
+    // restricts the pick to models with an enabled agent_runtime_config, so the
+    // shortlist is offered as given.
+    const deepseek = {
       ...recommendationFixture.suggested,
-      recommendationOptionId: 21,
-      model: "GPT-5 Mini",
-      vendor: "OpenAI",
+      recommendationOptionId: 31,
+      model: "DeepSeek V4 Flash",
+      vendor: "DeepSeek",
     };
-    const runnable = {
+    const gemini = {
       ...recommendationFixture.suggested,
-      recommendationOptionId: 22,
-      model: "Claude Haiku 4.5",
-      vendor: "Anthropic",
+      recommendationOptionId: 32,
+      model: "Gemini 3.5 Flash",
+      vendor: "Google",
     };
     const result = {
       ...recommendationFixture,
-      suggested: openAiSuggested,
-      shortlist: [openAiSuggested, runnable],
+      suggested: deepseek,
+      shortlist: [deepseek, gemini],
     };
     const onSubmit = okSubmit();
     render(<RecommendationView result={result} onSubmit={onSubmit} />);
 
-    // OpenAI is not offered; the runnable Anthropic option is
-    expect(screen.queryByText("GPT-5 Mini")).not.toBeInTheDocument();
-    expect(screen.getByText("Claude Haiku 4.5")).toBeInTheDocument();
-    expect(screen.getByText(/data-only option.*hidden/i)).toBeInTheDocument();
+    // the unfamiliar vendor is offered, not hidden
+    expect(screen.getByText("DeepSeek V4 Flash")).toBeInTheDocument();
+    expect(screen.getByText("Gemini 3.5 Flash")).toBeInTheDocument();
+    expect(screen.queryByText(/data-only option.*hidden/i)).not.toBeInTheDocument();
 
-    // defaults to the runnable option, never the filtered-out OpenAI one
+    // and it defaults to the SUGGESTED option, not the first familiar vendor
     fireEvent.change(screen.getByLabelText("Project name"), { target: { value: "acme-api" } });
     fireEvent.click(screen.getByRole("button", { name: /create project/i }));
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({
         name: "acme-api",
-        selectedOptionId: 22, // the runnable Anthropic option
+        selectedOptionId: 31, // DeepSeek — the top-ranked pick
         baselineModelId: recommendationFixture.baseline.modelId,
       }),
     );
+  });
+
+  it("states the narrowing from the backend's counts, not from vendor names", () => {
+    const result = {
+      ...recommendationFixture,
+      comparabilityGroup: {
+        benchmark: "RealVuln",
+        metric: "f3_score",
+        rankedCount: 3,
+        candidateCount: 16,
+      },
+    };
+    render(<RecommendationView result={result} onSubmit={okSubmit()} />);
+    expect(screen.getByText(/Ranked 3 of 16 scored models/i)).toBeInTheDocument();
   });
 });

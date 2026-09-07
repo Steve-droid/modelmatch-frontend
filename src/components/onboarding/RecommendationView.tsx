@@ -14,12 +14,6 @@ function perMtok(value: string | null): string {
   return `$${n.toFixed(2)}/Mtok`;
 }
 
-// Only providers with a CI-agent adapter can actually run in the user's Jenkins, so
-// only these are selectable for create-project. OpenAI (and any other data-only
-// vendor) stays in the catalog/chat but is filtered out of onboarding here.
-const RUNNABLE_VENDORS = new Set(["anthropic", "google", "amazon"]);
-const isRunnable = (vendor: string) =>
-  RUNNABLE_VENDORS.has(vendor.toLowerCase());
 
 // Shows the ranked result: comparability group, the selectable shortlist (suggested
 // pre-selected), the baseline, and a name → submit step. The submit is caller-owned
@@ -44,13 +38,15 @@ export function RecommendationView({
 }) {
   const { baseline, comparabilityGroup, shortlist, suggested } = result;
 
-  // Only runnable-provider options are selectable; the suggested one is the default
-  // when it's runnable, otherwise the top runnable option.
-  const selectable = shortlist.filter((o) => isRunnable(o.vendor));
-  const excludedCount = shortlist.length - selectable.length;
-  const defaultId = isRunnable(suggested.vendor)
-    ? suggested.recommendationOptionId
-    : selectable[0]?.recommendationOptionId;
+  // Every ranked option is runnable: the backend restricts the pick to models with an
+  // enabled agent_runtime_config (RECOMMEND_ONLY_RUNNABLE) and reports the narrowing
+  // as rankedCount vs candidateCount. This view used to re-filter by a hardcoded
+  // vendor allowlist, which was a SECOND source of truth for "runnable" and went
+  // stale the moment a new provider was enabled — it hid DeepSeek V4 Flash, the
+  // top-ranked security pick, and silently promoted the runner-up in its place.
+  // Whether a model can run is a property of the catalog, not of its vendor's name.
+  const selectable = shortlist;
+  const defaultId = suggested.recommendationOptionId;
 
   // A pick the caller is restoring wins over the suggestion, but only if it is still
   // one of the selectable options.
@@ -120,16 +116,19 @@ export function RecommendationView({
         </ul>
       ) : (
         <div className="rounded-md border border-unrated/40 bg-unrated/10 px-3 py-2 text-sm text-unrated">
-          No runnable model in this result. Every option is a data-only provider with
-          no CI agent, so try different inputs.
+          No model in this result. Nothing in this benchmark group could be ranked, so
+          try different inputs.
         </div>
       )}
-      {excludedCount > 0 && selectable.length > 0 && (
-        <p className="text-xs text-faint">
-          {excludedCount} data-only option{excludedCount === 1 ? "" : "s"} (e.g. OpenAI)
-          hidden, not runnable in CI.
-        </p>
-      )}
+      {comparabilityGroup?.rankedCount != null &&
+        comparabilityGroup?.candidateCount != null &&
+        comparabilityGroup.rankedCount < comparabilityGroup.candidateCount && (
+          <p className="text-xs text-faint">
+            Ranked {comparabilityGroup.rankedCount} of{" "}
+            {comparabilityGroup.candidateCount} scored models — the rest have no CI
+            agent runtime, and stay in the catalog and the chat.
+          </p>
+        )}
 
       {/* baseline */}
       <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm">
