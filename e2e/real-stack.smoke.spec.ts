@@ -104,7 +104,7 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
 
   // --- home → create a CI-Agent ---
   await page.getByRole("button", { name: "Create a new CI-Agent" }).click();
-  await expect(page.getByText("Set up your code-review agent")).toBeVisible();
+  await expect(page.getByText("Set up your CI agent")).toBeVisible();
 
   // --- recommend (ci_review, High). Seeding was preflighted → this MUST appear now. ---
   await page.getByRole("button", { name: "High", exact: true }).click();

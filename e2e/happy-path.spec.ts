@@ -28,9 +28,18 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
 
   // --- home → onboarding (drive the real CTA, not a deep link) ---
   await createCta.click();
-  await expect(page.getByText("Set up your code-review agent")).toBeVisible();
+  await expect(page.getByText("Set up your CI agent")).toBeVisible();
 
   // --- recommender (ci_review, budget-sensitivity High → Nova suggested) ---
+  // P38c: the task is a two-option selector naming each task's benchmark. This flow
+  // stays on the default (PR code review); the selector itself is unit-tested.
+  await expect(page.getByRole("button", { name: /PR code review/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByText(/Ranked on CodeReviewBench \(Jun 2026 snapshot\)/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Security analysis/ })).toBeVisible();
+
   await page.getByRole("button", { name: "High", exact: true }).click();
   await page.getByRole("button", { name: "Get recommendation" }).click();
 
