@@ -5,7 +5,7 @@ import { KpiCard } from "../KpiCard";
 import { QualityPill } from "../StatusBadge";
 import { RunsTable } from "../RunsTable";
 import { buildAreaData } from "../SavingsAreaChart";
-import { formatUSD } from "../../lib/format";
+import { formatUSD, formatUSDAxis } from "../../lib/format";
 import {
   savingsFixture,
   overspendFixture,
@@ -41,6 +41,22 @@ describe("formatUSD", () => {
 
   it("places the sign before the $ for overspend (negative)", () => {
     expect(formatUSD("-0.010000")).toBe("-$0.0100");
+  });
+});
+
+describe("formatUSDAxis (F3: adaptive tick precision)", () => {
+  it("keeps sub-cent ticks distinct instead of collapsing to $0.001/$0", () => {
+    // the seeded cost-per-run scale: ticks must all differ
+    const ticks = [0, 0.0005, 0.001, 0.0015, 0.002].map(formatUSDAxis);
+    expect(new Set(ticks).size).toBe(ticks.length);
+    expect(ticks).toEqual(["$0", "$0.0005", "$0.001", "$0.0015", "$0.002"]);
+  });
+
+  it("stays compact for cent- and dollar-scale ticks", () => {
+    expect(formatUSDAxis(0.045)).toBe("$0.045");
+    expect(formatUSDAxis(0.06)).toBe("$0.06");
+    expect(formatUSDAxis(12.34)).toBe("$12.3");
+    expect(formatUSDAxis(-0.0012)).toBe("-$0.0012");
   });
 });
 
@@ -178,8 +194,10 @@ describe("Dashboard (overspend)", () => {
     const { Dashboard } = await import("../../pages/Dashboard");
     render(<Dashboard />);
     await screen.findByText("Net overspend");
-    // count-up settles on the final frame → poll for the settled value
-    const value = await screen.findByText("-$0.0100");
+    // numbers render final (no count-up); the KPI headline and the runs-table cell both
+    // show the figure — assert the headline (the first, a <div>) reads red
+    const [value] = await screen.findAllByText("-$0.0100");
+    expect(value.tagName).toBe("DIV");
     expect(value.className).toContain("text-risk");
   });
 

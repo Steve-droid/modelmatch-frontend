@@ -15,8 +15,11 @@ import {
 
 vi.mock("../../api/recommend", () => ({ postRecommendation: vi.fn() }));
 import { postRecommendation } from "../../api/recommend";
-vi.mock("../../api/projects", () => ({ createProject: vi.fn() }));
-import { createProject } from "../../api/projects";
+vi.mock("../../api/projects", () => ({
+  createProject: vi.fn(),
+  updateProject: vi.fn(),
+}));
+import { createProject, updateProject } from "../../api/projects";
 vi.mock("../../api/jenkins", () => ({ connectJenkins: vi.fn() }));
 import { connectJenkins } from "../../api/jenkins";
 vi.mock("../../api/ci", () => ({ getCiSetup: vi.fn(), rotateCiToken: vi.fn() }));
@@ -25,6 +28,7 @@ import { getCiSetup, rotateCiToken } from "../../api/ci";
 beforeEach(() => {
   vi.mocked(postRecommendation).mockReset();
   vi.mocked(createProject).mockReset();
+  vi.mocked(updateProject).mockReset();
   vi.mocked(connectJenkins).mockReset();
   vi.mocked(getCiSetup).mockReset();
   vi.mocked(rotateCiToken).mockReset();
@@ -59,7 +63,9 @@ describe("JenkinsConnectForm (metadata only + URL validation)", () => {
     );
 
     expect(screen.getByText("modelmatch-model-api-key")).toBeInTheDocument();
-    expect(screen.getByText(/binds it as ANTHROPIC_API_KEY/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/bound by the CI stage as ANTHROPIC_API_KEY/i),
+    ).toBeInTheDocument();
     expect(screen.getByText("modelmatch-ci-token")).toBeInTheDocument();
   });
 
@@ -242,6 +248,68 @@ describe("Onboarding defer-create", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => expect(connectJenkins).toHaveBeenCalledTimes(2));
     expect(createProject).toHaveBeenCalledTimes(1);
+  });
+
+  it("steps BACK to Recommend from the Jenkins step, keeping the pick", async () => {
+    getRecommendation();
+
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText("Jenkins base URL");
+
+    // the stepper is navigation: click step 1 to go back
+    fireEvent.click(screen.getByRole("button", { name: "Step 1: Recommend" }));
+
+    // the pick screen returns with the name still filled in
+    expect(await screen.findByLabelText("Project name")).toHaveValue("acme-api");
+    expect(screen.queryByLabelText("Jenkins base URL")).not.toBeInTheDocument();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("re-picking after the project exists PATCHes it instead of creating a second one", async () => {
+    vi.mocked(createProject).mockResolvedValue(createdProjectFixture);
+    vi.mocked(connectJenkins).mockResolvedValue(jenkinsConnectionFixture);
+    vi.mocked(updateProject).mockResolvedValue(createdProjectFixture);
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
+    getRecommendation();
+
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "acme-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText("Jenkins base URL");
+    fillJenkins();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/shown once/i); // CI-setup step: the project now exists
+
+    // step back to the pick and choose the other model
+    fireEvent.click(screen.getByRole("button", { name: "Step 1: Recommend" }));
+    fireEvent.click(await screen.findByText("Nova 2 Lite"));
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() =>
+      expect(updateProject).toHaveBeenCalledWith(createdProjectFixture.id, {
+        name: "acme-api",
+        selectedOptionId: 12, // the newly chosen option
+        baselineModelId: 9,
+      }),
+    );
+    expect(createProject).toHaveBeenCalledTimes(1); // never a second project
+    // and the Jenkins step comes back prefilled with what was typed before
+    expect(await screen.findByLabelText("Jenkins base URL")).toHaveValue(
+      "https://jenkins.example.com",
+    );
+  });
+
+  it("locks steps the user has not unlocked yet", async () => {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<Onboarding onDone={vi.fn()} />);
+
+    // before any pick, both later steps are unreachable
+    expect(screen.getByRole("button", { name: "Step 2: Connect Jenkins" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step 3: CI setup" })).toBeDisabled();
   });
 
   it("shows Bedrock Jenkins requirements when the user picks Nova 2 Lite", async () => {

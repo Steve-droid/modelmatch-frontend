@@ -41,7 +41,7 @@ export function StatusBadge({ status }: { status: QualityStatus }) {
   const { label, className, Icon } = STATUS_META[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium ${className}`}
     >
       <Icon size={13} />
       {label}

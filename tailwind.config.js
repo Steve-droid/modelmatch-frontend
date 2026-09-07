@@ -1,23 +1,27 @@
 /** @type {import('tailwindcss').Config} */
-// ModelMatch "DevOps Command Center" theme: dark by default, near-black canvas,
-// soft elevated panels, semantic status accents (green=banked / amber=unrated /
-// red=quality-risk / cyan=model·CI). Monospace for money, tokens, ids.
+// ModelMatch theme (P38): the Grafana-style palette — desaturated status trio, one
+// blue accent, flat dark surfaces — applied app-wide. Monospace for money, tokens, ids.
+//
+// The savings dashboard additionally opts into flatter panels via the `theme-dash`
+// class (see `--card-radius` in src/index.css); every other page keeps its existing
+// layout and component language, just repainted in this palette.
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        canvas: "#0a0b0d", // near-black background
-        panel: "#141619", // elevated card surface
-        "panel-2": "#1b1e23", // a slightly lighter inset (used sparingly, no nested cards)
-        border: "#262a31",
-        muted: "#8b929e", // secondary text
-        faint: "#5b626d", // tertiary / axis text
-        banked: "#22c55e", // green  — banked savings / passing quality
-        unrated: "#f59e0b", // amber  — unrated / pending review
-        risk: "#ef4444", // red    — quality risk / failed gate
-        signal: "#5b93a8", // muted steel-cyan — model / CI / infra signals
-        accent: "#6366f1", // indigo — primary brand action
+        canvas: "#111217", // page background
+        panel: "#181b1f", // panel surface
+        "panel-2": "#22252b", // inset surface (inputs, insets) — no nested cards
+        border: "#2c3235",
+        fg: "#ccccdc", // primary text
+        muted: "#9fa7b3", // secondary text
+        faint: "#6e7680", // tertiary / axis text
+        banked: "#73bf69", // green  — banked savings / passing quality
+        unrated: "#ff9830", // orange — unrated / pending review
+        risk: "#f2495c", // red    — quality risk / failed gate
+        accent: "#5794f2", // Grafana blue — the primary action accent
+        signal: "#5b93a8", // steel-cyan — model / CI motifs on the home hub only
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],

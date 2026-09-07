@@ -64,7 +64,7 @@ export function RunsTable({
   return (
     <div className="card overflow-hidden p-0">
       <div className="border-b border-border px-4 py-3">
-        <h3 className="text-sm font-semibold text-gray-200">CI runs</h3>
+        <h3 className="text-sm font-semibold text-fg">CI runs</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -96,7 +96,7 @@ export function RunsTable({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-8 text-center text-muted">
-                  No CI runs yet — the dashboard fills in as the agent posts runs.
+                  No CI runs yet. The dashboard fills in as the agent posts runs.
                 </td>
               </tr>
             )}
@@ -129,17 +129,17 @@ function FragmentRow({
         className="cursor-pointer border-t border-border/60 hover:bg-white/[0.02]"
       >
         <td className="px-4 py-2.5">
-          <span className="flex items-center gap-1.5 num text-gray-200">
+          <span className="flex items-center gap-1.5 num text-fg">
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             {run.jenkinsBuildId ?? "—"}
           </span>
         </td>
         <td className="px-4 py-2.5 text-muted">{formatDateTime(run.createdAt)}</td>
-        <td className="px-4 py-2.5 num text-signal">{run.model ?? "—"}</td>
+        <td className="px-4 py-2.5 num text-fg">{run.model ?? "—"}</td>
         <td className="px-4 py-2.5 num text-right text-muted">
           {formatTokens((run.tokensIn ?? 0) + (run.tokensOut ?? 0))}
         </td>
-        <td className="px-4 py-2.5 num text-right text-gray-200">
+        <td className="px-4 py-2.5 num text-right text-fg">
           {formatUSD(run.actualCost)}
         </td>
         <td className="px-4 py-2.5 num text-right text-muted">
@@ -210,15 +210,15 @@ function FindingItem({
   }
 
   return (
-    <li className="flex items-start gap-2 text-xs text-gray-300">
+    <li className="flex items-start gap-2 text-xs text-muted">
       <span className="num shrink-0 text-faint">
         {finding.category ?? "—"}/{finding.severity ?? "—"}
       </span>
-      <span className="num shrink-0 text-signal">
+      <span className="num shrink-0 text-fg">
         {finding.file ?? "—"}
         {finding.line != null ? `:${finding.line}` : ""}
       </span>
-      <span className="text-gray-300">{finding.message}</span>
+      <span className="text-muted">{finding.message}</span>
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         {error && <span className="text-risk">couldn’t save</span>}
         <VerdictButton
@@ -276,7 +276,7 @@ function VerdictButton({
       aria-pressed={active}
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex h-6 w-6 items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         active ? activeCls : idleCls
       }`}
     >

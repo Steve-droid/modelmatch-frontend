@@ -5,9 +5,9 @@ import { ModelNamesBackdrop } from "./ModelNamesBackdrop";
 // Section 3 — "Create a new agent" → the onboarding/create-project flow. Three quick
 // "what you'll do" beats so the CTA isn't bare, kept on-brand and compact.
 const STEPS = [
-  { icon: Sparkles, label: "Get matched", text: "Ranked on CodeReviewBench — the public, up-to-date benchmark for CI code-review models — no LLM in the ranking." },
+  { icon: Sparkles, label: "Get matched", text: "Ranked on CodeReviewBench, the public benchmark for CI code-review models. No LLM in the ranking." },
   { icon: Gauge, label: "Run in CI", text: "Drop the stage into your Jenkins; it reviews every pull request." },
-  { icon: ShieldCheck, label: "Prove it", text: "Save vs a premium baseline — counted only when quality holds." },
+  { icon: ShieldCheck, label: "Monitor your savings", text: "Save vs a premium baseline, counted only when quality holds." },
 ] as const;
 
 export function CreateAgentSection({ id, onCreateAgent }: { id: string; onCreateAgent: () => void }) {

@@ -5,6 +5,16 @@
 @tailwind utilities;
 
 @layer base {
+  /* The savings dashboard uses flatter panels than the rest of the app (P38 F1);
+     everything else keeps the softer card radius. Colours are global (tailwind.config). */
+  :root {
+    --card-radius: 0.5rem;
+  }
+
+  .theme-dash {
+    --card-radius: 4px;
+  }
+
   html,
   body,
   #root {
@@ -12,7 +22,7 @@
   }
 
   body {
-    @apply bg-canvas text-gray-100 font-sans antialiased;
+    @apply bg-canvas text-fg font-sans antialiased;
     /* tabular figures so monospace numerals line up in columns */
     font-feature-settings: "tnum" 1;
   }
@@ -21,7 +31,8 @@
 @layer components {
   /* A single elevated card. No cards inside cards (design rule). */
   .card {
-    @apply rounded-lg border border-border bg-panel p-4;
+    @apply border border-border bg-panel p-4;
+    border-radius: var(--card-radius);
   }
 
   /* Monospace numerics for money, tokens, model + build ids. */

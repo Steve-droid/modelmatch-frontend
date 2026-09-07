@@ -25,8 +25,8 @@ import {
 } from "./chart-bits";
 
 // One charted point. `floor`/`gain`/`loss` stack to honestly show BOTH directions:
-// - savings ≥ 0: floor = actual (cyan), gain = the green gap up to baseline = savings.
-// - overspend (actual > baseline): floor = baseline (cyan), loss = the RED gap up to
+// - savings ≥ 0: floor = actual (blue), gain = the green gap up to baseline = savings.
+// - overspend (actual > baseline): floor = baseline (blue), loss = the RED gap up to
 //   actual. We never clamp away an overspend — it surfaces in red (architecture §8).
 // `baseline` is also drawn as its own neutral line, so every tooltip colour maps to a
 // visible element (fixes the "gray with no gray in the chart" ambiguity).
@@ -93,25 +93,20 @@ export function SavingsAreaChart({
     >
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={data} margin={chartMargin}>
-          <defs>
-            <linearGradient id="gActual" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartColors.actual} stopOpacity={0.5} />
-              <stop offset="100%" stopColor={chartColors.actual} stopOpacity={0.05} />
-            </linearGradient>
-            <linearGradient id="gSavings" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartColors.savings} stopOpacity={0.5} />
-              <stop offset="100%" stopColor={chartColors.savings} stopOpacity={0.08} />
-            </linearGradient>
-          </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
           <XAxis dataKey="label" {...axisProps} />
           <YAxis {...axisProps} width={60} tickFormatter={formatUSDAxis} />
           <Tooltip
             content={<AreaTooltip selectedModel={selectedModel} baselineModel={baselineModel} />}
           />
-          <Area type="monotone" dataKey="floor" stackId="cost" stroke={chartColors.actual} fill="url(#gActual)" strokeWidth={2} />
-          <Area type="monotone" dataKey="gain" stackId="cost" stroke={chartColors.savings} fill="url(#gSavings)" strokeWidth={2} />
-          <Area type="monotone" dataKey="loss" stackId="cost" stroke={chartColors.risk} fill={chartColors.risk} fillOpacity={0.25} strokeWidth={2} />
+          {/* flat low-alpha fills (Grafana-style) — no gradients */}
+          <Area type="monotone" dataKey="floor" stackId="cost" stroke={chartColors.actual} fill={chartColors.actual} fillOpacity={0.12} strokeWidth={1.5} />
+          <Area type="monotone" dataKey="gain" stackId="cost" stroke={chartColors.savings} fill={chartColors.savings} fillOpacity={0.15} strokeWidth={1.5} />
+          {/* the overspend band only when there is one — a zero-height area would still draw
+              its red stroke along the top of the savings band */}
+          {hasOverspend && (
+            <Area type="monotone" dataKey="loss" stackId="cost" stroke={chartColors.risk} fill={chartColors.risk} fillOpacity={0.15} strokeWidth={1.5} />
+          )}
           <Line type="monotone" dataKey="baseline" stroke={chartColors.baselineLine} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -157,7 +152,7 @@ function Row({
   color,
   label,
   value,
-  valueClass = "text-gray-100",
+  valueClass = "text-fg",
 }: {
   color: string;
   label: string;
@@ -166,7 +161,7 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="flex items-center gap-1.5 text-gray-300">
+      <span className="flex items-center gap-1.5 text-muted">
         <span className="h-2 w-2 rounded-sm" style={{ background: color }} />
         {label}
       </span>

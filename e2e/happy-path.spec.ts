@@ -57,7 +57,8 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   await page.getByRole("button", { name: "Go to dashboard" }).click();
 
   // --- dashboard: the mocked CI run seeds the KPIs / chart / runs table ---
-  await expect(page.getByText("Cumulative saved")).toBeVisible();
+  // (exact: the chat opener's expanded grounding snippet also contains "cumulative saved")
+  await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "CI runs" })).toBeVisible(); // runs table
   await expect(page.getByText(/build 101/)).toBeVisible(); // the seeded run's table row
 
@@ -71,11 +72,13 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   await expect(chat.getByText("What model am I running?")).toBeVisible(); // the user turn
   await expect(chat.getByText(/You're running Nova 2 Lite/)).toBeVisible(); // the answer
 
-  // the retrieval trace is a collapsible disclosure — expand it and check a source
+  // the retrieval trace is a disclosure that starts EXPANDED on the newest answer
+  // (P38 F4) — its sources are already visible; clicking collapses them again
   const trace = chat.getByRole("button", { name: /Grounded on 2 sources/ });
   await expect(trace).toBeVisible();
-  await trace.click();
   await expect(chat.getByText(/Nova 2 Lite · review_score/)).toBeVisible();
+  await trace.click();
+  await expect(chat.getByText(/Nova 2 Lite · review_score/)).toBeHidden();
 
   // fail-closed: no unexpected API call + every critical payload was well-formed
   expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
@@ -114,7 +117,7 @@ test("home navigation: View my CI-Agents → dashboard, logo → home, browser B
 
   // hub → dashboard via "View my CI-Agents"
   await page.getByRole("button", { name: /View my CI-Agents/ }).click();
-  await expect(page.getByText("Cumulative saved")).toBeVisible();
+  await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
 
   // dashboard logo (aria "Home") → back to the hub
   await page.getByRole("button", { name: "Home" }).click();
@@ -122,7 +125,7 @@ test("home navigation: View my CI-Agents → dashboard, logo → home, browser B
 
   // browser Back from the hub-after-dashboard returns to the dashboard (history nav)
   await page.goBack();
-  await expect(page.getByText("Cumulative saved")).toBeVisible();
+  await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
 
   expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
 });

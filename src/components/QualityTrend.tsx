@@ -49,8 +49,8 @@ export function QualityTrend({
             type="monotone"
             dataKey="rate"
             stroke={chartColors.actual}
-            strokeWidth={2}
-            dot={{ r: 3, fill: chartColors.actual }}
+            strokeWidth={1.5}
+            dot={{ r: 2.5, fill: chartColors.actual, strokeWidth: 0 }}
             connectNulls
           />
         </LineChart>
@@ -78,8 +78,8 @@ function TrendTooltip({
         {d.build ? ` · build ${d.build}` : ""}
       </div>
       <div className="flex items-center justify-between gap-4">
-        <span className="text-gray-300">Acceptance</span>
-        <span className="num text-gray-100">{d.rate === null ? "unrated" : `${d.rate}%`}</span>
+        <span className="text-muted">Acceptance</span>
+        <span className="num text-fg">{d.rate === null ? "unrated" : `${d.rate}%`}</span>
       </div>
       {d.rate !== null && (
         <div className={`mt-0.5 ${banks ? "text-banked" : "text-risk"}`}>

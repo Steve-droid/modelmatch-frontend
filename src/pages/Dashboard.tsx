@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Activity,
-  AlertTriangle,
-  Coins,
-  GitBranch,
-  Plus,
-  ShieldCheck,
-} from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import type { SavingsRange, SavingsResponse } from "../types/savings";
 import type { Project } from "../types/project";
 import { getSavings } from "../api/savings";
@@ -19,7 +12,7 @@ import {
   formatUSD,
   toNumber,
 } from "../lib/format";
-import { KpiCard } from "../components/KpiCard";
+import { KpiCard, SavingsHero } from "../components/KpiCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { SavingsAreaChart } from "../components/SavingsAreaChart";
 import { CostPerRunBar } from "../components/CostPerRunBar";
@@ -157,7 +150,9 @@ export function Dashboard({
   }, []);
 
   return (
-    <div className="min-h-full">
+    // `theme-dash` opts this page into the flatter panel radius (P38 F1). The palette
+    // itself is app-wide; only the dashboard's panel geometry differs.
+    <div className="theme-dash min-h-full">
       <Header
         projects={projects ?? []}
         projectId={projectId}
@@ -196,57 +191,79 @@ export function Dashboard({
 
               {data && k && (
                 <>
-                  {/* KPI row */}
-                  <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <KpiCard
-                      label={toNumber(k.cumulativeSaved) < 0 ? "Net overspend" : "Cumulative saved"}
-                      countTo={toNumber(k.cumulativeSaved)}
-                      format={formatUSD}
-                      accent={toNumber(k.cumulativeSaved) < 0 ? "text-risk" : "text-banked"}
-                      icon={<Coins size={16} />}
-                      sub={
+                  {/* KPI: the savings hero + a compact stat strip (F2) */}
+                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(26rem,1fr)_minmax(0,1.6fr)]">
+                    <SavingsHero
+                      label={
+                        toNumber(k.cumulativeSaved) < 0
+                          ? "Net overspend"
+                          : "Cumulative saved"
+                      }
+                      value={formatUSD(k.cumulativeSaved)}
+                      accent={
+                        toNumber(k.cumulativeSaved) < 0 ? "text-risk" : "text-banked"
+                      }
+                      vsBaseline={
                         <>
-                          {k.savedPct != null ? `${formatPct(k.savedPct)} vs baseline` : "—"}{" "}
-                          · {k.bankedRuns} saved
-                          {k.qualityRiskRuns > 0 && (
-                            <span className="mt-0.5 block text-unrated">
-                              {formatUSD(k.qualityRisk)} excluded as quality risk
+                          {k.savedPct != null ? `${formatPct(k.savedPct)} vs baseline` : "—"}
+                          {data.baselineModel && (
+                            <span className="text-muted">
+                              {" · "}
+                              {data.baselineModel} costed, not run
                             </span>
                           )}
                         </>
                       }
-                    />
-                    <KpiCard
-                      label="Spend this period"
-                      countTo={toNumber(k.spendThisPeriod)}
-                      format={formatUSD}
-                      icon={<Activity size={16} />}
-                      sub={
-                        k.projectedMonthlySpend != null
-                          ? `~${formatUSD(k.projectedMonthlySpend)}/mo projected`
-                          : "projection needs more history"
+                      split={
+                        <>
+                          {k.bankedRuns} banked
+                          {k.qualityRiskRuns > 0 && (
+                            <>
+                              {" · "}
+                              <span className="text-risk">
+                                {k.qualityRiskRuns} quality-risk (
+                                {formatUSD(k.qualityRisk)} excluded)
+                              </span>
+                            </>
+                          )}
+                          {k.unratedRuns > 0 && (
+                            <>
+                              {" · "}
+                              <span className="text-unrated">{k.unratedRuns} unrated</span>
+                            </>
+                          )}
+                        </>
                       }
                     />
-                    <KpiCard
-                      label="Quality"
-                      value={formatPctFromRate(k.acceptanceRate)}
-                      accent={
-                        k.qualityStatus === "banking"
-                          ? "text-banked"
-                          : k.qualityStatus === "quality_risk"
-                            ? "text-risk"
-                            : "text-unrated"
-                      }
-                      icon={<ShieldCheck size={16} />}
-                      sub={<>acceptance · threshold {formatPctFromRate(k.threshold)}</>}
-                    />
-                    <KpiCard
-                      label="CI runs"
-                      countTo={k.runsCount}
-                      format={(n) => String(Math.round(n))}
-                      icon={<GitBranch size={16} />}
-                      sub={`${k.bankedRuns} saved · ${k.qualityRiskRuns} risk · ${k.unratedRuns} unrated`}
-                    />
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <KpiCard
+                        label="Spend this period"
+                        value={formatUSD(k.spendThisPeriod)}
+                        sub={
+                          k.projectedMonthlySpend != null
+                            ? `~${formatUSD(k.projectedMonthlySpend)}/mo projected`
+                            : "projection needs more history"
+                        }
+                      />
+                      <KpiCard
+                        label="Quality"
+                        value={formatPctFromRate(k.acceptanceRate)}
+                        accent={
+                          k.qualityStatus === "banking"
+                            ? "text-banked"
+                            : k.qualityStatus === "quality_risk"
+                              ? "text-risk"
+                              : "text-unrated"
+                        }
+                        sub={`acceptance · threshold ${formatPctFromRate(k.threshold)}`}
+                      />
+                      <KpiCard
+                        label="CI runs"
+                        value={String(k.runsCount)}
+                        sub={data.selectedModel ?? "—"}
+                      />
+                    </div>
                   </section>
 
                   {/* main chart */}
@@ -310,16 +327,16 @@ function Header({
   status?: SavingsResponse["kpis"]["qualityStatus"];
 }) {
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
+    <header className="sticky top-0 z-10 border-b border-border bg-canvas">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={onHome}
             disabled={!onHome}
             aria-label="Home"
-            className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
+            className="flex items-center gap-3 rounded transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel-2">
               <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
             </span>
             <span className="font-semibold tracking-tight">ModelMatch</span>
@@ -333,8 +350,8 @@ function Header({
           )}
           {activeProject && !activeProject.setupComplete && (
             <span
-              className="inline-flex items-center gap-1 rounded-md border border-unrated/40 bg-unrated/10 px-2 py-1 text-xs font-medium text-unrated"
-              title="No CI ingest token yet — finish setup via Edit Jenkins, then add the CI stage."
+              className="inline-flex items-center gap-1 rounded border border-unrated/40 bg-unrated/10 px-2 py-1 text-xs font-medium text-unrated"
+              title="No CI ingest token yet. Finish setup via Edit Jenkins, then add the CI stage."
             >
               <AlertTriangle size={12} />
               Setup incomplete
@@ -355,21 +372,21 @@ function Header({
           {onNewProject && (
             <button
               onClick={onNewProject}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
+              className="flex items-center gap-1.5 rounded border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-fg"
             >
               <Plus size={13} />
               New CI-Agent
             </button>
           )}
-          <div className="flex items-center rounded-md border border-border bg-panel p-0.5">
+          <div className="flex items-center rounded border border-border bg-panel p-0.5">
             {RANGES.map((r) => (
               <button
                 key={r}
                 onClick={() => onRange(r)}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                   range === r
-                    ? "bg-panel-2 text-gray-100"
-                    : "text-muted hover:text-gray-200"
+                    ? "bg-panel-2 text-fg"
+                    : "text-muted hover:text-fg"
                 }`}
               >
                 {r === "all" ? "All" : r}

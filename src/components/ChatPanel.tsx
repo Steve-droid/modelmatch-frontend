@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageSquare, Send } from "lucide-react";
+import { Loader2, Send, Terminal } from "lucide-react";
 import type { ChatMessage, RetrievalTrace } from "../types/chat";
 import { getChatHistory, postChat } from "../api/chat";
 import { ApiError } from "../api/client";
@@ -116,7 +116,7 @@ export function ChatPanel({
           : e instanceof ApiError && e.status === 403
             ? { text: "You don't have access to this project's chat.", variant: "error" as const }
             : e instanceof ApiError
-              ? { text: "Sorry — I couldn't answer that just now. Please try again.", variant: "error" as const }
+              ? { text: "Sorry, I couldn't answer that just now. Please try again.", variant: "error" as const }
               : { text: "Could not reach the backend.", variant: "error" as const };
       append({ key: localKey("s"), role: "assistant", text: notice.text, trace: [], variant: notice.variant });
     } finally {
@@ -132,17 +132,27 @@ export function ChatPanel({
   }
 
   const nearLimit = input.length > MAX_CHARS - 200;
+  // Index of the newest assistant answer — the only turn whose retrieval trace opens
+  // by default (older answers stay collapsed so the thread reads as a log).
+  const lastAnswerIndex = messages.reduce(
+    (last, m, i) => (m.role === "assistant" && m.variant === "answer" ? i : last),
+    -1,
+  );
 
   return (
     <section className="card flex h-full flex-col gap-0 p-0" aria-label="Grounded chat">
       {/* header */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-signal/15 text-signal">
-          <MessageSquare size={15} />
+        <span className="text-faint">
+          <Terminal size={14} />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Ask ModelMatch</div>
-          <div className="text-xs text-faint">Grounded in your savings + catalog</div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">
+            Ask ModelMatch
+          </div>
+          <div className="text-xs text-faint">
+            Nova Lite via Bedrock · answers only from your savings + catalog
+          </div>
         </div>
       </div>
 
@@ -156,7 +166,7 @@ export function ChatPanel({
         )}
 
         {loadError && !loading && (
-          <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+          <div className="rounded border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
             {loadError}
           </div>
         )}
@@ -168,18 +178,20 @@ export function ChatPanel({
         )}
 
         <div className="flex flex-col gap-3">
-          {messages.map((m) => (
+          {messages.map((m, i) => (
             <ChatMessageBubble
               key={m.key}
               role={m.role}
               text={m.text}
               trace={m.trace}
               variant={m.variant}
+              // the newest answer shows its grounding expanded; older ones collapse
+              traceOpen={i === lastAnswerIndex}
             />
           ))}
 
           {sending && (
-            <div className="flex items-center gap-2 self-start rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm text-muted">
+            <div className="flex items-center gap-2 rounded border border-border bg-panel-2 px-3 py-2 text-sm text-muted">
               <Loader2 size={13} className="animate-spin" />
               Thinking…
             </div>
@@ -189,7 +201,7 @@ export function ChatPanel({
 
       {/* composer */}
       <div className="border-t border-border p-3">
-        <div className="flex items-end gap-2 rounded-md border border-border bg-panel-2 px-2 py-1.5 focus-within:border-accent/50">
+        <div className="flex items-end gap-2 rounded border border-border bg-panel-2 px-2 py-1.5 focus-within:border-accent">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -199,14 +211,14 @@ export function ChatPanel({
             disabled={loading || !!loadError}
             placeholder="Ask a follow-up…"
             aria-label="Ask a question"
-            className="max-h-28 flex-1 resize-none bg-transparent text-sm text-gray-100 placeholder:text-faint focus:outline-none disabled:opacity-50"
+            className="max-h-28 flex-1 resize-none bg-transparent text-sm text-fg placeholder:text-faint focus:outline-none disabled:opacity-50"
           />
           <button
             type="button"
             onClick={() => void handleSend()}
             disabled={!canSend}
             aria-label="Send"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-accent text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send size={14} />
           </button>
