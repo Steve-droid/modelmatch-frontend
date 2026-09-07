@@ -65,7 +65,7 @@ describe("App routing", () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: /create your first ci-agent/i }));
-    expect(await screen.findByText(/Set up your code-review agent/)).toBeInTheDocument();
+    expect(await screen.findByText(/Set up your CI agent/)).toBeInTheDocument();
   });
 
   it("the dashboard logo returns to the home hub", async () => {

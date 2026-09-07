@@ -62,6 +62,69 @@ describe("RecommenderForm", () => {
     },
   );
 
+  // P38c: the task is chosen, not fixed. Each task is measured by ONE benchmark, so
+  // the selector both sets the payload and tells the user what the ranking will be
+  // based on — a score is meaningless without the thing that produced it.
+  it("offers both tasks and names the benchmark each is ranked on", () => {
+    render(<RecommenderForm onResult={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /PR code review/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Security analysis/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Ranked on CodeReviewBench \(Jun 2026 snapshot\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Ranked on RealVuln v2.1/)).toBeInTheDocument();
+  });
+
+  it("defaults to PR code review", async () => {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<RecommenderForm onResult={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /PR code review/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /Security analysis/i })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("sends the selected task, and only ever one", async () => {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<RecommenderForm onResult={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Security analysis/i }));
+    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
+
+    await waitFor(() =>
+      expect(postRecommendation).toHaveBeenCalledWith({
+        taskTypes: ["security_analysis"],
+        budgetSensitivity: "high",
+        latencyNeed: null,
+      }),
+    );
+    // exactly one task — two would span two benchmarks, which the backend rejects
+    // (422) because their scores share no scale
+    const sent = vi.mocked(postRecommendation).mock.calls[0][0];
+    expect(sent.taskTypes).toHaveLength(1);
+  });
+
+  it("is single-select: choosing the other task replaces the first", async () => {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    render(<RecommenderForm onResult={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Security analysis/i }));
+    fireEvent.click(screen.getByRole("button", { name: /PR code review/i }));
+    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
+
+    await waitFor(() =>
+      expect(postRecommendation).toHaveBeenCalledWith(
+        expect.objectContaining({ taskTypes: ["ci_review"] }),
+      ),
+    );
+  });
+
   it("shows an error when the recommendation request fails", async () => {
     vi.mocked(postRecommendation).mockRejectedValue(new ApiError(422, "No catalog rows match"));
     render(<RecommenderForm onResult={vi.fn()} />);

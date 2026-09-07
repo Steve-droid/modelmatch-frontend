@@ -8,11 +8,35 @@ import type {
 import { postRecommendation } from "../../api/recommend";
 import { ApiError } from "../../api/client";
 
-// S15b onboarding is scoped to ci_review — the product's proof path (the agent
-// reviews PR diffs), where the catalog + baseline (Sonnet-class) are sound. Other
-// task types (e.g. agentic_coding) are hidden until their catalog/baseline story is
-// corrected backend-side, so the task is shown as a fixed pill, not a selector. The
-// recommender itself still supports them; the form always sends ["ci_review"].
+// The two tasks the CI agent can perform. Each is measured by ONE benchmark and one
+// metric (a hard backend invariant), so the benchmark is shown with the task rather
+// than buried in the result — it is what the recommendation will be ranked on, and a
+// score only means something next to the thing that produced it. Exactly one task is
+// selected; the form sends it as `taskTypes: [task]`.
+//
+// `agentic_coding` is deliberately absent: those catalog rows exist for breadth and
+// are never recommended over, because the product does not run an autonomous coding
+// agent in anyone's CI.
+const TASKS: {
+  value: string;
+  label: string;
+  benchmark: string;
+  blurb: string;
+}[] = [
+  {
+    value: "ci_review",
+    label: "PR code review",
+    benchmark: "CodeReviewBench (Jun 2026 snapshot)",
+    blurb: "One call per pull request: reviews the diff for quality and security issues.",
+  },
+  {
+    value: "security_analysis",
+    label: "Security analysis",
+    benchmark: "RealVuln v2.1",
+    blurb: "An agentic scan of the whole checkout; a critical finding fails the build.",
+  },
+];
+
 const BUDGETS: { value: BudgetSensitivity; label: string }[] = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
@@ -37,9 +61,7 @@ export function RecommenderForm({
   onResult: (r: RecommendationResult) => void;
   onUnauthorized?: () => void;
 }) {
-  // Fixed for now (onboarding is scoped to ci_review); kept as state so the payload
-  // contract stays explicit and the recommender can re-expose task choice later.
-  const [taskTypes] = useState<string[]>(["ci_review"]);
+  const [task, setTask] = useState<string>(TASKS[0].value);
   const [budget, setBudget] = useState<BudgetSensitivity>("high");
   const [latency, setLatency] = useState<LatencyNeed | "any">("any");
 
@@ -54,12 +76,14 @@ export function RecommenderForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (taskTypes.length === 0 || submitting) return;
+    if (submitting) return;
     setSubmitting(true);
     setError(null);
     try {
       const result = await postRecommendation({
-        taskTypes,
+        // Exactly one task: rows from two benchmarks have no comparable ranking, and
+        // the backend rejects a mixed request rather than guessing.
+        taskTypes: [task],
         budgetSensitivity: budget,
         latencyNeed: latency === "any" ? null : latency,
       });
@@ -78,21 +102,47 @@ export function RecommenderForm({
           <Sparkles size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-lg font-semibold">Set up your code-review agent</div>
+          <div className="text-lg font-semibold">Set up your CI agent</div>
           <div className="text-sm text-faint">
-            ModelMatch recommends a cost-effective model to review your pull requests in CI,
-            then proves it's good enough by counting the savings against a premium
-            baseline. No LLM in the ranking.
+            ModelMatch recommends a cost-effective model for the job, then proves it's good
+            enough by counting the savings against a premium baseline. No LLM in the ranking.
           </div>
         </div>
       </div>
 
-      {/* task — fixed to CI code review (not selectable); shown as a static pill */}
-      <div className="flex items-center gap-2 text-xs">
-        <span className="font-medium text-muted">Task</span>
-        <span className="rounded-md border border-accent/40 bg-accent/10 px-2.5 py-1 font-medium text-gray-200">
-          Code-quality &amp; security review
-        </span>
+      {/* task — single-select. Each option names the benchmark it will be ranked on. */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-muted">Task</span>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {TASKS.map((t) => {
+            const selected = task === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setTask(t.value)}
+                className={`flex flex-col gap-1 rounded-md border p-3 text-left transition-colors ${
+                  selected
+                    ? "border-accent/60 bg-accent/10"
+                    : "border-border bg-panel-2 hover:border-border/80"
+                }`}
+              >
+                <span
+                  className={`text-sm font-medium ${
+                    selected ? "text-gray-100" : "text-muted"
+                  }`}
+                >
+                  {t.label}
+                </span>
+                <span className="text-xs text-faint">{t.blurb}</span>
+                <span className="mt-0.5 text-xs font-medium text-muted">
+                  Ranked on {t.benchmark}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* budget + latency — two segmented controls aligned on the same baseline.
@@ -120,7 +170,7 @@ export function RecommenderForm({
 
       <button
         type="submit"
-        disabled={taskTypes.length === 0 || submitting}
+        disabled={submitting}
         className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
