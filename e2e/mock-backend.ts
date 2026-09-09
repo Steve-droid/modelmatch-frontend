@@ -144,7 +144,7 @@ const CHAT_HISTORY = {
       id: 1,
       role: "assistant",
       text:
-        "You've banked $0.045 vs your Sonnet 4.5 baseline across 3 CI runs — about 64% " +
+        "You've saved $0.045 vs your Sonnet 4.5 baseline across 3 CI runs — about 64% " +
         "saved. Quality is holding at 86% acceptance.",
       createdAt: "2026-06-06T10:05:00Z",
       retrievalTrace: [

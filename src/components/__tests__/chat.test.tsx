@@ -41,7 +41,7 @@ describe("RetrievalTraceDetail", () => {
 describe("ChatPanel", () => {
   it("renders the server-seeded opener with its source count visible and evidence collapsed", async () => {
     render(<ChatPanel projectId={1} />);
-    expect(await screen.findByText(/You've banked \$0.045/)).toBeInTheDocument();
+    expect(await screen.findByText(/You've saved \$0.045/)).toBeInTheDocument();
     // Keep attribution visible without filling the panel with evidence.
     expect(screen.getByText(/Grounded on 1 source/)).toBeInTheDocument();
     expect(screen.queryByText(/cumulative saved/)).not.toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("ChatPanel", () => {
   it("keeps evidence collapsed on new answers and reveals it on request", async () => {
     vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
 
     fireEvent.change(screen.getByLabelText("Ask a question"), {
       target: { value: "which model is cheapest?" },
@@ -71,7 +71,7 @@ describe("ChatPanel", () => {
   it("renders a user turn as a plain query line, not an accented bubble (F4)", async () => {
     vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
 
     fireEvent.change(screen.getByLabelText("Ask a question"), {
       target: { value: "how much did I save?" },
@@ -85,14 +85,14 @@ describe("ChatPanel", () => {
 
   it("disables send for an empty question and shows the empty/loading flow", async () => {
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
     expect(screen.getByLabelText("Send")).toBeDisabled();
   });
 
   it("sends a question and appends the grounded answer", async () => {
     vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
 
     fireEvent.change(screen.getByLabelText("Ask a question"), {
       target: { value: "which model is cheapest?" },
@@ -107,7 +107,7 @@ describe("ChatPanel", () => {
   it("sends on Enter (Shift+Enter does not)", async () => {
     vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
     const input = screen.getByLabelText("Ask a question");
 
     fireEvent.change(input, { target: { value: "q" } });
@@ -121,7 +121,7 @@ describe("ChatPanel", () => {
   it("shows a friendly in-thread notice on a 429 rate-limit", async () => {
     vi.mocked(postChat).mockRejectedValue(new ApiError(429, "cap hit"));
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
 
     fireEvent.change(screen.getByLabelText("Ask a question"), {
       target: { value: "again?" },
@@ -134,7 +134,7 @@ describe("ChatPanel", () => {
   it("renders an honest refusal as a normal answer (no trace)", async () => {
     vi.mocked(postChat).mockResolvedValue(chatRefusalFixture);
     render(<ChatPanel projectId={1} />);
-    await screen.findByText(/You've banked/);
+    await screen.findByText(/You've saved/);
 
     fireEvent.change(screen.getByLabelText("Ask a question"), {
       target: { value: "what's the weather?" },

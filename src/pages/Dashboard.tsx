@@ -298,7 +298,7 @@ export function Dashboard({
                       }
                       split={
                         <>
-                          {k.bankedRuns} banked
+                          {k.bankedRuns} {k.bankedRuns === 1 ? "run" : "runs"} counted toward savings
                           {k.qualityRiskRuns > 0 && (
                             <>
                               {" · "}
