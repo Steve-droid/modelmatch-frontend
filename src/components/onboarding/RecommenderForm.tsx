@@ -98,16 +98,15 @@ export function RecommenderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card flex flex-col gap-5">
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/20 text-accent">
+    <form onSubmit={handleSubmit} className="card flex flex-col gap-6 p-6 sm:p-8">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-accent">
           <Sparkles size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-lg font-semibold">Set up your CI agent</div>
-          <div className="text-sm text-faint">
-            ModelMatch recommends a cost-effective model for the job, then proves it's good
-            enough by counting the savings against a premium baseline. No LLM in the ranking.
+          <h1 className="text-xl font-semibold tracking-tight text-gray-100">Set up your CI agent</h1>
+          <div className="mt-2 text-sm leading-relaxed text-muted">
+            Choose your task and priorities. We’ll recommend a model using benchmark results.
           </div>
         </div>
       </div>
@@ -124,7 +123,7 @@ export function RecommenderForm({
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setTask(t.value)}
-                className={`flex flex-col gap-1 rounded-md border p-3 text-left transition-colors ${
+                className={`flex flex-col gap-1 rounded-xl border p-4 text-left transition-colors ${
                   selected
                     ? "border-accent/60 bg-accent/10"
                     : "border-border bg-panel-2 hover:border-border/80"
@@ -165,7 +164,7 @@ export function RecommenderForm({
       </div>
 
       {error && (
-        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+        <div className="rounded-xl border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
           {error}
         </div>
       )}
@@ -173,7 +172,7 @@ export function RecommenderForm({
       <button
         type="submit"
         disabled={submitting}
-        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="primary-action self-start"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
         Get recommendation
@@ -196,16 +195,18 @@ function Segmented({
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-muted">{label}</span>
-      <div className="flex min-h-[2.75rem] items-stretch rounded-md border border-border bg-panel-2 p-0.5">
+      <div role="group" aria-label={label}
+        className="flex min-h-[2.75rem] items-stretch gap-1 rounded-xl border border-border bg-canvas/40 p-1">
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`flex min-w-0 flex-1 items-center justify-center rounded px-3 py-2.5 text-center text-sm font-medium leading-tight transition-colors ${
+            aria-pressed={value === o.value}
+            className={`flex min-w-0 flex-1 items-center justify-center rounded-lg border px-3 py-2.5 text-center text-sm font-medium leading-tight transition-colors ${
               value === o.value
-                ? "bg-panel text-gray-100"
-                : "text-muted hover:text-gray-200"
+                ? "border-accent/70 bg-accent/30 text-white"
+                : "border-transparent text-muted hover:bg-panel hover:text-gray-200"
             }`}
           >
             {o.label}

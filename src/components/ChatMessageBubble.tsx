@@ -12,8 +12,6 @@ export interface BubbleProps {
   text: string | null;
   trace?: RetrievalTrace[];
   variant?: BubbleVariant;
-  /** The newest answer shows its retrieval trace expanded (P38 F4). */
-  traceOpen?: boolean;
 }
 
 // P38 F4 — the panel reads as a tool, not a chat widget: a user turn is a plain
@@ -24,7 +22,6 @@ export function ChatMessageBubble({
   text,
   trace = [],
   variant = "answer",
-  traceOpen = false,
 }: BubbleProps) {
   if (role === "user") {
     return (
@@ -42,10 +39,10 @@ export function ChatMessageBubble({
       ? "border-unrated/40 bg-unrated/10 text-unrated"
       : variant === "error"
         ? "border-risk/40 bg-risk/10 text-risk"
-        : "border-border bg-panel-2 text-muted";
+        : "border-border/60 bg-canvas/20 text-gray-300";
 
   return (
-    <div className={`rounded border px-3 py-2 text-sm leading-relaxed ${surface}`}>
+    <div className={`rounded-xl border px-4 py-4 text-sm leading-7 ${surface}`}>
       {variant !== "answer" && (
         <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide">
           {variant === "notice" ? <Clock size={11} /> : <AlertTriangle size={11} />}
@@ -54,7 +51,7 @@ export function ChatMessageBubble({
       )}
       <p className="whitespace-pre-wrap break-words">{text}</p>
       {variant === "answer" && (
-        <RetrievalTraceDetail trace={trace} defaultOpen={traceOpen} />
+        <RetrievalTraceDetail trace={trace} />
       )}
     </div>
   );

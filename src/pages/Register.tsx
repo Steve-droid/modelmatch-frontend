@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
 import { login, register } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
-import { VALUE_PROP } from "../lib/valueProp";
+import { AuthLayout } from "../components/AuthLayout";
+import { PasswordField } from "../components/PasswordField";
 
 // Sign-up screen. Creates the account, then logs in to obtain a JWT (register itself
 // returns the new user, not a token) and hands off to the app — same auto-land as Login.
-// Mirrors the Login card in the Command-Center language; onSignIn returns to the Login
+// Shares the Login layout; onSignIn returns to the Login
 // page for an existing account.
 export function Register({
   onAuthed,
@@ -62,61 +62,35 @@ export function Register({
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center px-4">
-      <div className="card w-full max-w-sm">
-        <div className="mb-5 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel-2">
-            <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
-          </span>
-          <div className="leading-tight">
-            <div className="font-semibold tracking-tight">ModelMatch</div>
-            <div className="text-xs text-faint">{VALUE_PROP.headline}</div>
-          </div>
+    <AuthLayout>
+        <div className="mb-9">
+          <p className="eyebrow">GET STARTED</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Create your account</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Your next CI agent starts here.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <label className="flex flex-col gap-2 text-sm font-medium text-gray-300">
             Email
             <input
               type="email"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
+              className="auth-input"
               placeholder="you@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-            Password
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-            Confirm password
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </label>
+          <PasswordField value={password} onChange={setPassword} autoComplete="new-password" />
+          <PasswordField label="Confirm password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
 
           {!passwordsMatch && (
             <div className="text-xs text-unrated">Passwords don't match.</div>
           )}
 
           {error && (
-            <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+            <div role="alert" className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
               {error}
             </div>
           )}
@@ -137,7 +111,7 @@ export function Register({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="mt-1 flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="primary-action mt-2 w-full"
           >
             {submitting ? (
               <Loader2 size={15} className="animate-spin" />
@@ -148,7 +122,7 @@ export function Register({
           </button>
         </form>
 
-        <div className="mt-4 text-center text-xs text-muted">
+        <div className="mt-7 text-center text-sm text-muted">
           Already have an account?{" "}
           <button
             type="button"
@@ -158,7 +132,6 @@ export function Register({
             Sign in
           </button>
         </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

@@ -90,9 +90,9 @@ export function RecommendationView({
   }
 
   return (
-    <div className="card flex flex-col gap-4">
+    <div className="card flex flex-col gap-5 p-6 sm:p-8">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-banked/15 text-banked">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-banked/15 text-banked">
           <Trophy size={15} />
         </span>
         <div className="leading-tight">
@@ -121,14 +121,14 @@ export function RecommendationView({
           ))}
         </ul>
       ) : (
-        <div className="rounded-md border border-unrated/40 bg-unrated/10 px-3 py-2 text-sm text-unrated">
+        <div className="rounded-xl border border-unrated/40 bg-unrated/10 px-3 py-2 text-sm text-unrated">
           No model matched. Try different inputs.
         </div>
       )}
 
       {/* baseline — hidden when the pick IS the baseline (nothing to compare against) */}
       {!pickIsBaseline && (
-        <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm">
+        <div className="rounded-xl border border-border bg-panel-2 px-3 py-2.5 text-sm">
           <span className="font-medium text-muted">Baseline (costed, not run): </span>
           <span className="text-gray-200">{baseline.model}</span>
           <span className="text-faint"> · {baseline.vendor} · </span>
@@ -148,20 +148,20 @@ export function RecommendationView({
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. acme-api"
             aria-label="Project name"
-            className="min-w-0 flex-1 rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
+            className="min-w-0 flex-1 field-input"
           />
           <button
             type="button"
             onClick={handleCreate}
             disabled={!canCreate}
-            className="flex shrink-0 items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="primary-action shrink-0"
           >
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
             {submitLabel}
           </button>
         </div>
         {error && (
-          <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+          <div className="rounded-xl border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
             {error}
           </div>
         )}
@@ -188,7 +188,7 @@ function OptionRow({
         role="radio"
         aria-checked={selected}
         onClick={onSelect}
-        className={`flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition-colors ${
+        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
           selected
             ? "border-accent/50 bg-accent/10"
             : "border-border bg-panel-2 hover:border-border"

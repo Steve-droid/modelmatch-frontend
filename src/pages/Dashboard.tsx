@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, House, Plus } from "lucide-react";
 import type { SavingsRange, SavingsResponse } from "../types/savings";
 import type { Project } from "../types/project";
 import { getSavings } from "../api/savings";
@@ -14,7 +14,6 @@ import {
 } from "../lib/format";
 import { KpiCard, SavingsHero } from "../components/KpiCard";
 import { taskLabelOf } from "../lib/task";
-import { StatusBadge } from "../components/StatusBadge";
 import { SavingsAreaChart } from "../components/SavingsAreaChart";
 import { CostPerRunBar } from "../components/CostPerRunBar";
 import { QualityTrend } from "../components/QualityTrend";
@@ -160,9 +159,7 @@ export function Dashboard({
   }, []);
 
   return (
-    // `theme-dash` opts this page into the flatter panel radius (P38 F1). The palette
-    // itself is app-wide; only the dashboard's panel geometry differs.
-    <div className="theme-dash min-h-full">
+    <div className="workspace-page min-h-full">
       <Header
         projects={projects ?? []}
         projectId={projectId}
@@ -175,10 +172,9 @@ export function Dashboard({
         onUnauthorized={handleUnauthorized}
         range={range}
         onRange={setRange}
-        status={pickIsBaseline ? undefined : k?.qualityStatus}
       />
 
-      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-[1600px] px-4 py-7 sm:px-6">
         {projectsError && (
           <div className="card border-risk/40 text-sm text-risk">{projectsError}</div>
         )}
@@ -367,7 +363,6 @@ function Header({
   onUnauthorized,
   range,
   onRange,
-  status,
 }: {
   projects: Project[];
   projectId: number | null;
@@ -380,19 +375,18 @@ function Header({
   onUnauthorized?: () => void;
   range: SavingsRange;
   onRange: (r: SavingsRange) => void;
-  status?: SavingsResponse["kpis"]["qualityStatus"];
 }) {
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-canvas">
-      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
-        <div className="flex items-center gap-3">
+    <header className="workspace-header sticky top-0 z-10 border-b border-border">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <button
             onClick={onHome}
             disabled={!onHome}
             aria-label="Home"
-            className="flex items-center gap-3 rounded transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
+            className="flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel">
               <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
             </span>
             <span className="font-semibold tracking-tight">ModelMatch</span>
@@ -423,23 +417,29 @@ function Header({
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {status && <StatusBadge status={status} />}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {onHome && (
+            <button type="button" onClick={onHome} className="compact-action">
+              <House size={13} />
+              Back to home
+            </button>
+          )}
           {onNewProject && (
             <button
               onClick={onNewProject}
-              className="flex items-center gap-1.5 rounded border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-fg"
+              className="compact-action"
             >
               <Plus size={13} />
-              New CI-Agent
+              Set up a CI agent
             </button>
           )}
-          <div className="flex items-center rounded border border-border bg-panel p-0.5">
+          <div className="flex items-center rounded-xl border border-border bg-panel p-1" role="group" aria-label="Date range">
             {RANGES.map((r) => (
               <button
                 key={r}
                 onClick={() => onRange(r)}
-                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                aria-pressed={range === r}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   range === r
                     ? "bg-panel-2 text-fg"
                     : "text-muted hover:text-fg"

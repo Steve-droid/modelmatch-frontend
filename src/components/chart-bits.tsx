@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
-// Shared chart chrome so the three charts look consistent (one flat panel each — no
-// nesting). Panel titles are Grafana-style: small, uppercase, muted.
+// Shared chart surfaces keep titles and legends consistent across the dashboard.
 
 export function ChartCard({
   title,
@@ -16,8 +15,8 @@ export function ChartCard({
 }) {
   return (
     <div className="card">
-      <div className="mb-1 flex items-baseline justify-between">
-        <h3 className="text-xs font-medium uppercase tracking-wide text-muted">{title}</h3>
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-medium text-gray-200">{title}</h3>
         {hint && <span className="text-xs text-faint">{hint}</span>}
       </div>
       {legend && <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">{legend}</div>}
@@ -40,7 +39,7 @@ export function LegendSwatch({ color, children }: { color: string; children: Rea
 // The dark surface custom tooltips render into.
 export function TooltipBox({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded border border-border bg-panel-2 px-3 py-2 text-xs">
+    <div className="rounded-xl border border-border bg-panel-2 px-3 py-2 text-xs">
       {children}
     </div>
   );

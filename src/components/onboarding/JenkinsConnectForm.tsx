@@ -66,9 +66,9 @@ export function JenkinsConnectForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="card flex flex-col gap-5 p-6 sm:p-8">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-signal/15 text-signal">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-signal/15 text-signal">
           <Plug size={15} />
         </span>
         <div className="leading-tight">
@@ -105,7 +105,7 @@ export function JenkinsConnectForm({
       </Field>
 
       {/* credentials the user creates in Jenkins — ModelMatch never receives them */}
-      <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5">
+      <div className="rounded-xl border border-border bg-panel-2 px-3 py-2.5">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
           <KeyRound size={13} className="text-signal" />
           {copy.heading}
@@ -119,14 +119,14 @@ export function JenkinsConnectForm({
           ))}
         </ul>
         {copy.note && (
-          <div className="mt-2 rounded-md border border-border bg-panel px-2.5 py-2 text-xs text-faint">
+          <div className="mt-2 rounded-xl border border-border bg-panel px-2.5 py-2 text-xs text-faint">
             {copy.note}
           </div>
         )}
       </div>
 
       {error && (
-        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+        <div className="rounded-xl border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
           {error}
         </div>
       )}
@@ -134,7 +134,7 @@ export function JenkinsConnectForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="primary-action self-start"
       >
         {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plug size={15} />}
         {submitLabel}
@@ -144,7 +144,7 @@ export function JenkinsConnectForm({
 }
 
 const inputCls =
-  "rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none";
+  "field-input";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

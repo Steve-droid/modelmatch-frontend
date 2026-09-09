@@ -67,7 +67,7 @@ export function ProjectActions({
         aria-label="CI-Agent actions"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        className="flex items-center gap-1 rounded border border-border bg-panel px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-fg"
+        className="compact-action"
       >
         <Settings2 size={13} />
       </button>
@@ -75,7 +75,7 @@ export function ProjectActions({
       {menuOpen && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded border border-border bg-panel-2 py-1"
+          className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-border bg-panel-2 py-1"
         >
           <MenuItem icon={<Plug size={13} />} label="Edit Jenkins" onClick={() => open("editJenkins")} />
           <MenuItem icon={<Terminal size={13} />} label="CI setup & token" onClick={() => open("cisetup")} />

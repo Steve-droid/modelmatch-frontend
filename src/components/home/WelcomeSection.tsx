@@ -1,61 +1,32 @@
-import { ChevronDown, GitPullRequest } from "lucide-react";
-import { useInView } from "../../lib/useInView";
+import { ArrowRight, GitPullRequest } from "lucide-react";
 import { VALUE_PROP } from "../../lib/valueProp";
-import { HowItWorksFlow } from "./HowItWorksFlow";
-import { SectionBackdrop } from "./SectionBackdrop";
-import { SavingsCurveBackdrop } from "./SavingsCurveBackdrop";
-import markUrl from "../../assets/brand/modelmatch-mark.svg";
+import { ReviewIllustration } from "./ReviewIllustration";
 
-// Section 1 — the hero. The value prop is the first thing you read. A subtle fade/rise
-// on scroll-in (useInView); a chevron cues the two sections below.
-export function WelcomeSection({ id, onScrollNext }: { id: string; onScrollNext: () => void }) {
-  const [ref, inView] = useInView<HTMLElement>();
-
+export function WelcomeSection({ onCreateAgent, onViewAgents }: {
+  onCreateAgent: () => void;
+  onViewAgents: () => void;
+}) {
   return (
-    <section
-      id={id}
-      ref={ref}
-      className="relative flex min-h-full snap-start flex-col items-center justify-center overflow-hidden px-6 text-center"
-    >
-      <SectionBackdrop>
-        <SavingsCurveBackdrop className="h-full w-full" active={inView} />
-      </SectionBackdrop>
-
-      <div
-        className={`relative z-10 flex max-w-3xl flex-col items-center transition-all duration-700 ease-out lg:max-w-5xl ${
-          inView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-        }`}
-      >
-        <span className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-panel lg:mb-8 lg:h-16 lg:w-16">
-          <img src={markUrl} alt="ModelMatch" className="h-6 w-6 lg:h-8 lg:w-8" />
-        </span>
-
-        <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-signal/30 bg-signal/10 px-3 py-1 text-xs font-medium text-signal lg:mb-7 lg:px-3.5 lg:py-1.5 lg:text-sm">
-          <GitPullRequest size={13} />
-          AI code review for your CI
-        </span>
-
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-gray-50 sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
-          {VALUE_PROP.headline}
-        </h1>
-        <p className="mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted sm:text-lg lg:mt-7 lg:max-w-3xl lg:text-xl">
-          {VALUE_PROP.sub}
-        </p>
-        <div className="mt-10 lg:mt-14">
-          <HowItWorksFlow active={inView} />
+    <main className="home-hero relative flex flex-1 flex-col justify-center overflow-hidden px-6 py-10 sm:px-12">
+      <div aria-hidden className="hero-glow" />
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-14 lg:grid-cols-[1.12fr_1fr] lg:gap-16">
+        <div>
+          <span className="eyebrow"><GitPullRequest size={15} /> AI that earns its place in your CI</span>
+          <h1 className="mt-6 max-w-xl text-balance text-4xl font-semibold leading-[1.1] tracking-[-0.045em] text-gray-50 sm:text-5xl xl:text-6xl">
+            {VALUE_PROP.headline}
+          </h1>
+          <p className="mt-6 max-w-md text-base leading-relaxed text-muted sm:text-lg">
+            Find a model for your code reviews. Run it in Jenkins.
+            Track what you save, with quality to back it up.
+          </p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <button onClick={onCreateAgent} className="primary-action">Set up a CI agent <ArrowRight size={16} /></button>
+            <button onClick={onViewAgents} className="secondary-action">View my CI agents</button>
+          </div>
+          <p className="mt-5 text-xs text-muted">Your pipeline. Your API key. You stay in control.</p>
         </div>
+        <ReviewIllustration />
       </div>
-
-      <button
-        onClick={onScrollNext}
-        aria-label="Scroll to get started"
-        className={`relative z-10 mt-14 flex flex-col items-center gap-1 text-faint transition-all duration-700 ease-out hover:text-muted lg:mt-20 ${
-          inView ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <span className="text-xs font-medium">Get started</span>
-        <ChevronDown size={18} className="animate-bounce" />
-      </button>
-    </section>
+    </main>
   );
 }

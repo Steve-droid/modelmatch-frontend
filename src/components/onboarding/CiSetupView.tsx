@@ -87,9 +87,9 @@ export function CiSetupView({
   const copy = copyForTask(setup);
 
   return (
-    <div className="card flex flex-col gap-4">
+    <div className="card flex flex-col gap-5 p-6 sm:p-8">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-signal/15 text-signal">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-signal/15 text-signal">
           <Terminal size={15} />
         </span>
         <div className="leading-tight">
@@ -106,13 +106,13 @@ export function CiSetupView({
       )}
       {error && !loading && (
         <div className="flex flex-col gap-2">
-          <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+          <div className="rounded-xl border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
             {error}
           </div>
           <button
             type="button"
             onClick={load}
-            className="flex items-center gap-2 self-start rounded-md border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100"
+            className="flex items-center gap-2 self-start rounded-xl border border-border bg-panel-2 px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100"
           >
             <RotateCw size={14} />
             Retry
@@ -124,7 +124,7 @@ export function CiSetupView({
         <>
           {/* the mint-once token */}
           {setup.token ? (
-            <div className="rounded-md border border-unrated/40 bg-unrated/10 px-3 py-2">
+            <div className="rounded-xl border border-unrated/40 bg-unrated/10 px-3 py-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-unrated">
                 <ShieldAlert size={13} />
                 CI token, shown once. Copy it now, it can't be retrieved again.
@@ -134,7 +134,7 @@ export function CiSetupView({
               </code>
             </div>
           ) : (
-            <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5">
+            <div className="rounded-xl border border-border bg-panel-2 px-3 py-2.5">
               <p className="text-xs text-muted">
                 CI token was already minted for this project and can't be shown again. If
                 you didn't copy it, regenerate a fresh one. The old token stops working.
@@ -143,7 +143,7 @@ export function CiSetupView({
                 type="button"
                 onClick={regenerate}
                 disabled={rotating}
-                className="mt-2 flex items-center gap-2 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
+                className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-panel px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-gray-100 disabled:opacity-40"
               >
                 {rotating ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />}
                 Regenerate token
@@ -157,7 +157,7 @@ export function CiSetupView({
               <span className="text-xs font-medium text-muted">Jenkins stage</span>
               <span className="text-xs text-faint">{copy.note}</span>
             </div>
-            <pre className="max-h-[26rem] overflow-auto rounded-md border border-border bg-panel-2 p-4 text-xs leading-relaxed text-gray-200">
+            <pre className="max-h-[26rem] overflow-auto rounded-xl border border-border bg-panel-2 p-4 text-xs leading-relaxed text-gray-200">
               <code>{setup.snippet}</code>
             </pre>
           </div>
@@ -176,7 +176,7 @@ export function CiSetupView({
           <button
             type="button"
             onClick={onDone}
-            className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="primary-action self-start"
           >
             Go to dashboard
             <ArrowRight size={15} />

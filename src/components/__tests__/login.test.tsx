@@ -18,6 +18,17 @@ function fill(email: string, password: string) {
 }
 
 describe("Login", () => {
+  it("reveals and hides the password without submitting or losing its value", () => {
+    render(<Login onAuthed={vi.fn()} onRegister={vi.fn()} />);
+    fill("steve@example.com", "my-password");
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+    expect(screen.getByLabelText("Password")).toHaveValue("my-password");
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+    expect(login).not.toHaveBeenCalled();
+  });
+
   it("stores the token and signals onAuthed on success", async () => {
     vi.mocked(login).mockResolvedValue({ accessToken: "jwt-123", tokenType: "bearer" });
     const onAuthed = vi.fn();

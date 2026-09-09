@@ -21,8 +21,8 @@ export function SavingsHero({
   split: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col gap-1.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted">
+    <div className="card savings-hero flex flex-col gap-3 p-6">
+      <span className="text-xs font-medium tracking-wide text-muted">
         {label}
       </span>
       <div className={`num text-5xl font-semibold leading-none ${accent}`}>
@@ -55,11 +55,11 @@ export function KpiCard({
     countTo !== undefined && format ? format(countTo) : (value ?? "—");
 
   return (
-    <div className="card flex flex-col gap-1.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted">
+    <div className="card flex flex-col gap-3">
+      <span className="text-xs font-medium tracking-wide text-muted">
         {label}
       </span>
-      <div className={`num text-xl font-semibold leading-none ${accent}`}>
+      <div className={`num text-2xl font-semibold leading-none ${accent}`}>
         {display}
       </div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
