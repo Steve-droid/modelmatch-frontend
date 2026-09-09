@@ -198,6 +198,13 @@ export function Dashboard({
       />
 
       <main className="mx-auto max-w-[1600px] px-4 py-7 sm:px-6">
+        {activeProject?.isExample && (
+          <section className="mb-5 rounded-xl border border-accent/30 bg-accent/5 p-4" aria-label="Example project">
+            <h2 className="text-sm font-semibold text-fg">{activeProject.name}</h2>
+            <p className="mt-1 text-sm text-muted">Explore this dashboard with sample CI runs. No CI connection or API key is required.</p>
+            {onNewProject && <button onClick={onNewProject} className="mt-3 text-sm font-medium text-accent">Create your own CI agent</button>}
+          </section>
+        )}
         {projectsError && (
           <div className="card border-risk/40 text-sm text-risk">{projectsError}</div>
         )}
@@ -421,7 +428,8 @@ function Header({
               onChange={onProject}
             />
           )}
-          {activeProject && !activeProject.setupComplete && (
+          {activeProject?.isExample && <span className="rounded border border-accent/30 px-2 py-1 text-xs text-accent">Example</span>}
+          {activeProject && !activeProject.isExample && !activeProject.setupComplete && (
             <span
               className="inline-flex items-center gap-1 rounded border border-unrated/40 bg-unrated/10 px-2 py-1 text-xs font-medium text-unrated"
               title="No CI ingest token yet. Finish setup via Edit Jenkins, then add the CI stage."
