@@ -259,3 +259,9 @@ into the image and served directly by nginx. It needs no session, API, JavaScrip
 third-party resources. Both authentication screens link to it. Google Branding uses
 `https://modicum.cloud` for the homepage and, **only after deployment and HTTP/content
 verification**, `https://modicum.cloud/privacy.html` for the privacy-policy link.
+
+
+P38n Google branding ownership proof: `public/googlecbd3e9a23700f7da.html` is the
+public Search Console HTML challenge for the operator's existing Google account and
+`https://modicum.cloud/`. It contains no client secret or authentication token. Keep it
+served unchanged so Google can recheck ownership; this avoids any DNS/registrar change.
