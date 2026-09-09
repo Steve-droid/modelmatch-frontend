@@ -11,20 +11,11 @@ RUN npm run build
 
 # --- runtime: non-root nginx serving static assets ---
 # nginx-unprivileged runs as uid 101 and listens on 8080 (no root needed).
-# Pinned by digest for reproducibility (alpine 3.23.x). MAINTENANCE: the preferred remedy
-# when Trivy flags this frozen base is to refresh the digest to a rebuilt `stable-alpine`.
-# But the upstream image lags the alpine repos — when a fix is already published as an apk
-# yet NOT baked into any rebuilt base, a digest refresh can't clear the finding. In that
-# case remediate with a targeted single-package `apk upgrade` from the pinned 3.23 repo
-# (below), and drop it once upstream rebuilds the base with the patch.
-# 2026-06-21: CVE-2026-45186 (libexpat, HIGH) — fix 2.8.1-r0 is in v3.23/main, but the
-# base (incl. the latest stable-alpine) still ships 2.7.5-r0 → targeted upgrade below.
-FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:de3e40ec8b7debd7194fc798d4bbfb102c7f8b012b2c73032816b5f72393acdd AS runtime
+# Refreshed 2026-09-09 after the P38k release scan found fixable HIGH CVEs in the
+# old base's c-ares/curl/OpenSSL/libuuid packages. nginx 1.30.4 on Alpine 3.24.1;
+# keep the immutable digest and rescan the final image before publishing.
+FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:442753882674b49ae2c1de83ed67896131c0777f56df5005e356e62bc3f7e7ce AS runtime
 USER root
-# Security remediation (see base-image note above): pull the patched libexpat
-# (CVE-2026-45186 → 2.8.1-r0) from the pinned alpine 3.23 repo. Remove once the upstream
-# base is rebuilt with the patch and a plain digest refresh scans clean again.
-RUN apk upgrade --no-cache libexpat
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker-entrypoint.d/40-config-js.sh /docker-entrypoint.d/40-config-js.sh
