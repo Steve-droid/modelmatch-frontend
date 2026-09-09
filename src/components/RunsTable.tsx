@@ -72,7 +72,8 @@ export function RunsTable({
       <div className="border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-fg">CI runs</h3>
       </div>
-      <div className="overflow-x-auto">
+      {/* Size expanded usage against the visible container, not the wide scrolling table. */}
+      <div className="overflow-x-auto [container-type:inline-size]">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-faint">
@@ -186,6 +187,16 @@ function FragmentRow({
       {open && (
         <tr className="bg-canvas/60">
           <td colSpan={colSpan} className="px-4 py-3">
+            <div className="mb-3 max-w-[calc(100cqw-2rem)] border-b border-border/60 pb-3">
+              <dl className="flex flex-wrap gap-x-8 gap-y-2 text-xs">
+                <TokenUsage label="Input tokens" value={run.tokensIn} />
+                <TokenUsage label="Output tokens" value={run.tokensOut} />
+                <TokenUsage label="Cache-read tokens" value={run.cacheReadTokens} />
+              </dl>
+              <p className="mt-2 text-xs text-muted">
+                Cache-read costs are not included in the displayed cost estimates.
+              </p>
+            </div>
             {loading ? (
               <p className="text-xs text-muted">Loading findings…</p>
             ) : findings.length === 0 ? (
@@ -201,6 +212,17 @@ function FragmentRow({
         </tr>
       )}
     </>
+  );
+}
+
+function TokenUsage({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div>
+      <dt className="text-muted">{label}</dt>
+      <dd className="mt-0.5 num text-fg">
+        {value == null ? "Not reported" : value.toLocaleString("en-US")}
+      </dd>
+    </div>
   );
 }
 
