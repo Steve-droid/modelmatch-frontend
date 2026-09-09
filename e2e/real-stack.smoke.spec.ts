@@ -151,5 +151,5 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   await expect(chat.getByText(/Loading conversation/)).toHaveCount(0, { timeout: 7000 });
   // opener is server-seeded (no LLM); assert a message bubble rendered, don't ask a
   // live question (that would spend Bedrock tokens).
-  await expect(chat.getByText("ModelMatch").first()).toBeVisible();
+  await expect(chat.getByText("Ask Modicum", { exact: true })).toBeVisible();
 });

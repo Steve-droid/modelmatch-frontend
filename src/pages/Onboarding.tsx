@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "../lib/brand";
 import { useState } from "react";
 import { ArrowLeft, Check, House } from "lucide-react";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
@@ -152,9 +153,9 @@ export function Onboarding({
               className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel">
-                <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
+                <img src={markUrl} alt={BRAND_NAME} className="h-4 w-4" />
               </span>
-              <span className="font-semibold tracking-tight">ModelMatch</span>
+              <span className="font-semibold tracking-tight">{BRAND_NAME}</span>
             </button>
             <span className="hidden text-xs text-muted sm:inline">Agent setup</span>
           </div>

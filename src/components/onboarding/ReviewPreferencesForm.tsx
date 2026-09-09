@@ -3,7 +3,7 @@ import { ArrowRight, ListChecks } from "lucide-react";
 
 // E20: per-project review preferences — the review task only. Bounded free text the
 // review agent appends to its system prompt under a "Project review preferences"
-// heading; it FETCHES it from ModelMatch at run time (GET /agent-config), so editing
+// heading; it FETCHES it from Modicum at run time (GET /agent-config), so editing
 // it here changes the next build without touching the Jenkinsfile. Optional: an
 // empty box means "no preferences" (null). The bound mirrors the API contract.
 export const REVIEW_PREFERENCES_MAX = 2000;
@@ -53,7 +53,7 @@ export function ReviewPreferencesForm({
           <div className="text-lg font-semibold">Review preferences</div>
           <div className="text-sm text-faint">
             Optional. What the reviewer should flag, or leave alone, on this project. The
-            agent reads them from ModelMatch on every run, so you can change them later
+            agent reads them from Modicum on every run, so you can change them later
             without touching the pipeline.
           </div>
         </div>

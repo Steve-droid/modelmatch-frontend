@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "../lib/brand";
 import { LogOut } from "lucide-react";
 import { WelcomeSection } from "../components/home/WelcomeSection";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
@@ -16,7 +17,7 @@ export function Home({ onViewAgents, onCreateAgent, onLogout }: {
           <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel">
             <img src={markUrl} alt="" className="h-4 w-4" />
           </span>
-          <span className="font-semibold tracking-tight">ModelMatch</span>
+          <span className="font-semibold tracking-tight">{BRAND_NAME}</span>
         </div>
         <button onClick={onLogout} aria-label="Log out"
           className="flex items-center gap-2 rounded-md border border-border bg-panel px-3 py-1.5 text-sm text-muted transition-colors hover:border-muted hover:text-gray-100">

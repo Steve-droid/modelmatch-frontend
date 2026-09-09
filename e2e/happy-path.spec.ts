@@ -62,7 +62,7 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   await page.getByRole("button", { name: "Continue" }).click();
 
   // --- Jenkins step → Continue creates the project, then connects ---
-  await expect(page.getByText("Point ModelMatch at your Jenkins")).toBeVisible();
+  await expect(page.getByText("Point Modicum at your Jenkins")).toBeVisible();
   await page.getByLabel("Jenkins base URL").fill("https://jenkins.example.com");
   await page.getByLabel("Job name").fill("acme-api/main");
   await page.getByRole("button", { name: "Continue" }).click();

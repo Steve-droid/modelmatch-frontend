@@ -1,8 +1,10 @@
-# modelmatch-frontend
+# Modicum — Frontend
 
-> React SPA for **ModelMatch** — the recommender form, the project + Jenkins onboarding wizard, the
+> Modicum was previously ModelMatch. Repository and infrastructure identifiers retain `modelmatch` for compatibility.
+
+> React SPA for **Modicum** — the recommender form, the project + Jenkins onboarding wizard, the
 > savings dashboard, and the grounded chat panel. Part of the
-> [ModelMatch portfolio build](../CLAUDE.md); full spec in [`../docs/planning/`](../docs/planning/).
+> [Modicum portfolio build](../CLAUDE.md); full spec in [`../docs/planning/`](../docs/planning/).
 
 ## Table of Contents
 
@@ -20,7 +22,7 @@
 
 ## Overview
 
-The browser-facing UI for ModelMatch — the product whose one-liner is *prove a cheaper LLM is good
+The browser-facing UI for Modicum — the product whose one-liner is *prove a cheaper LLM is good
 enough for your CI, and show the money saved.* This repo is the **presentation tier only**; it talks to
 the FastAPI backend over HTTPS/JSON and is served as static assets by nginx.
 
@@ -43,7 +45,7 @@ Key features:
 
 ### Where it fits — the two-surface model rule
 
-ModelMatch uses LLMs on **two separate surfaces**, and the FE touches neither directly — it only renders
+Modicum uses LLMs on **two separate surfaces**, and the FE touches neither directly — it only renders
 what the backend returns:
 
 | Surface | Models | Auth |
