@@ -79,6 +79,7 @@ const SAVINGS = {
   range: "all",
   selectedModel: "Nova 2 Lite",
   baselineModel: "Claude Sonnet 4.5",
+  taskType: "ci_review",
   kpis: {
     cumulativeSaved: "0.045000",
     savedPct: 64.3,
@@ -130,6 +131,7 @@ const SAVINGS = {
       acceptanceRate: 1.0,
       gate: "pass",
       findingsCount: 2,
+      cwes: [],
     },
   ],
 };
@@ -174,6 +176,8 @@ function project(over: Record<string, unknown> = {}) {
     baselineModelId: 9,
     baselineModel: "Claude Sonnet 4.5",
     baselineVendor: "Anthropic",
+    taskType: "ci_review",
+    reviewPreferences: "Flag any use of eval().",
     setupComplete: true,
     ...over,
   };
@@ -235,6 +239,12 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
         bad(`POST /projects selectedOptionId=${b?.selectedOptionId} (want number)`);
       if (typeof b?.baselineModelId !== "number")
         bad(`POST /projects baselineModelId=${b?.baselineModelId} (want number)`);
+      // E20: the task the pick was ranked on + the review preferences typed at the
+      // preferences step travel with the create.
+      if (b?.taskType !== "ci_review")
+        bad(`POST /projects taskType=${JSON.stringify(b?.taskType)} (want "ci_review")`);
+      if (b?.reviewPreferences !== "Flag any use of eval().")
+        bad(`POST /projects reviewPreferences=${JSON.stringify(b?.reviewPreferences)}`);
       created = true;
       return json(route, project({ setupComplete: false }), 201);
     }
@@ -261,6 +271,8 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
         imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.0.0",
         ciRunsUrl: "http://localhost:8000/projects/7/ci-runs",
         token: "mmci_e2e_one_time_token",
+        taskType: "ci_review",
+        task: "review",
       });
 
     // --- savings (the mocked CI run that seeds the panels) ---

@@ -49,12 +49,16 @@ export interface SavingsRunRow {
   acceptanceRate: number | null;
   gate: string | null;
   findingsCount: number;
+  // E20: distinct CWE ids on this run's findings ("CWE-89"), in finding order. Empty
+  // on review runs — the column only appears when a run carries one.
+  cwes: string[];
 }
 
 export interface SavingsResponse {
   range: SavingsRange;
   selectedModel: string | null; // recommended pick powering "actual"
   baselineModel: string | null; // expensive default "baseline" is costed against
+  taskType: string | null; // E20: the project's task ("ci_review" | "security_analysis")
   kpis: SavingsKpis;
   series: SavingsSeriesPoint[];
   runs: SavingsRunRow[];
@@ -71,6 +75,7 @@ export interface FindingRow {
   file: string | null;
   line: number | null;
   message: string | null;
+  cwe: string | null; // security task: "CWE-89: SQL Injection"; null on review findings
   verdict: Verdict | null; // the caller's accept/reject, or null (unrated)
 }
 

@@ -23,4 +23,8 @@ export interface CiSetup {
   imageRef: string;
   ciRunsUrl: string;
   token: string | null;
+  // E20: which task the stage runs — the catalog vocabulary + the agent's short name
+  // — so this step can word itself per task (review image vs security image).
+  taskType: string;
+  task: "review" | "security";
 }

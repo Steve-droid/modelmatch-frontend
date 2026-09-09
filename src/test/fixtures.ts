@@ -13,6 +13,7 @@ export const savingsFixture: SavingsResponse = {
   range: "all",
   selectedModel: "Gemini 2.5 Flash",
   baselineModel: "Claude Sonnet 4.x",
+  taskType: "ci_review",
   kpis: {
     cumulativeSaved: "0.045000",
     savedPct: 64.3,
@@ -73,6 +74,7 @@ export const savingsFixture: SavingsResponse = {
       acceptanceRate: 1.0,
       gate: "pass",
       findingsCount: 2,
+      cwes: [],
     },
     {
       id: 2,
@@ -88,6 +90,7 @@ export const savingsFixture: SavingsResponse = {
       acceptanceRate: 0.5,
       gate: "pass",
       findingsCount: 2,
+      cwes: [],
     },
     {
       id: 3,
@@ -103,6 +106,7 @@ export const savingsFixture: SavingsResponse = {
       acceptanceRate: null,
       gate: "pass",
       findingsCount: 1,
+      cwes: [],
     },
   ],
 };
@@ -118,6 +122,8 @@ export const projectsFixture: Project[] = [
     baselineModelId: 20,
     baselineModel: "claude-sonnet-4-5",
     baselineVendor: "Anthropic",
+    taskType: "ci_review",
+    reviewPreferences: null,
     setupComplete: true,
   },
   {
@@ -129,6 +135,8 @@ export const projectsFixture: Project[] = [
     baselineModelId: 20,
     baselineModel: "claude-sonnet-4-5",
     baselineVendor: "Anthropic",
+    taskType: "ci_review",
+    reviewPreferences: null,
     setupComplete: true,
   },
 ];
@@ -255,6 +263,8 @@ export const createdProjectFixture: Project = {
   baselineModelId: 9,
   baselineModel: "Claude Sonnet 4.5",
   baselineVendor: "Anthropic",
+  taskType: "ci_review",
+  reviewPreferences: null,
   setupComplete: false,
 };
 
@@ -271,6 +281,17 @@ export const ciSetupFixture: CiSetup = {
   imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.2.0",
   ciRunsUrl: "http://localhost:8000/projects/7/ci-runs",
   token: "mmci_s3cr3t_one_time_value",
+  taskType: "ci_review",
+  task: "review",
+};
+
+// E20: the security task's CI setup (the OpenCode image over a read-only checkout).
+export const ciSetupSecurityFixture: CiSetup = {
+  ...ciSetupFixture,
+  snippet: "stage('ModelMatch Security Analysis') {\n  steps { sh 'docker run modelmatch-agent-security' }\n}",
+  imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent-security:1.1.0",
+  taskType: "security_analysis",
+  task: "security",
 };
 
 // … and the same after the token was already minted (null on subsequent fetches).
@@ -296,6 +317,7 @@ export const overspendFixture: SavingsResponse = {
   range: "all",
   selectedModel: "Gemini 2.5 Flash",
   baselineModel: "Claude Sonnet 4.6",
+  taskType: "ci_review",
   kpis: {
     cumulativeSaved: "-0.010000",
     savedPct: -33.3,
@@ -328,6 +350,35 @@ export const overspendFixture: SavingsResponse = {
       acceptanceRate: 1.0,
       gate: "pass",
       findingsCount: 1,
+      cwes: [],
     },
   ],
+};
+
+
+// E20: a security project's dashboard — DeepSeek V4 Flash vs Opus 5, a run whose gate
+// FAILED on a critical finding, CWE ids on the row.
+export const securitySavingsFixture: SavingsResponse = {
+  ...savingsFixture,
+  selectedModel: "DeepSeek V4 Flash",
+  baselineModel: "Claude Opus 5",
+  taskType: "security_analysis",
+  runs: [
+    {
+      ...savingsFixture.runs[0],
+      id: 114,
+      jenkinsBuildId: "sec-114",
+      model: "DeepSeek V4 Flash",
+      gate: "fail",
+      findingsCount: 3,
+      cwes: ["CWE-1336", "CWE-79", "CWE-798"],
+    },
+  ],
+};
+
+// E20: the pick IS the baseline — there is nothing to save against.
+export const baselinePickSavingsFixture: SavingsResponse = {
+  ...savingsFixture,
+  selectedModel: "Claude Sonnet 4.x",
+  baselineModel: "Claude Sonnet 4.x",
 };

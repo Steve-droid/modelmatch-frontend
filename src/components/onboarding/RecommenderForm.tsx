@@ -54,11 +54,13 @@ const LATENCIES: { value: LatencyNeed | "any"; label: string }[] = [
 
 // Structured recommender form. Submits to POST /recommendations and hands the ranked
 // result up via onResult. No LLM on this path.
+// The task is handed up WITH the result: the ranked result names its benchmark, not
+// the task vocabulary the project must be created with (E20 `taskType`).
 export function RecommenderForm({
   onResult,
   onUnauthorized,
 }: {
-  onResult: (r: RecommendationResult) => void;
+  onResult: (r: RecommendationResult, taskType: string) => void;
   onUnauthorized?: () => void;
 }) {
   const [task, setTask] = useState<string>(TASKS[0].value);
@@ -87,7 +89,7 @@ export function RecommenderForm({
         budgetSensitivity: budget,
         latencyNeed: latency === "any" ? null : latency,
       });
-      onResult(result);
+      onResult(result, task);
     } catch (e) {
       handleApiError(e);
     } finally {

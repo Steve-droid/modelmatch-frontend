@@ -27,7 +27,7 @@ describe("RecommenderForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
 
-    await waitFor(() => expect(onResult).toHaveBeenCalledWith(recommendationFixture));
+    await waitFor(() => expect(onResult).toHaveBeenCalledWith(recommendationFixture, "ci_review"));
     // default form state → ci_review, budget high, latency "any" → null on the wire
     expect(postRecommendation).toHaveBeenCalledWith({
       taskTypes: ["ci_review"],
@@ -181,6 +181,33 @@ describe("RecommendationView", () => {
         baselineModelId: 9,
       }),
     );
+  });
+
+  it("drops the 'costed against' baseline line when the pick IS the baseline (E20)", () => {
+    // the baseline is a scored, runnable row and may sit in the shortlist itself
+    const result = {
+      ...recommendationFixture,
+      shortlist: [
+        ...recommendationFixture.shortlist,
+        {
+          ...recommendationFixture.shortlist[0],
+          recommendationOptionId: 13,
+          rank: 3,
+          model: "Claude Sonnet 4.5",
+          modelId: recommendationFixture.baseline.modelId,
+          costPerMtok: "8.000000",
+        },
+      ],
+    };
+    render(<RecommendationView result={result} onSubmit={okSubmit()} />);
+    expect(screen.getByText(/Baseline \(costed, not run\)/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Claude Sonnet 4.5/ }));
+    expect(screen.queryByText(/Baseline \(costed, not run\)/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/measured against/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Nova 2 Lite/ }));
+    expect(screen.getByText(/Baseline \(costed, not run\)/)).toBeInTheDocument();
   });
 
   it("supports an edit label + a prefilled name (re-pick mode)", () => {

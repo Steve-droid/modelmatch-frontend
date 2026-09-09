@@ -4,6 +4,28 @@ import type { CiSetup } from "../../types/ci";
 import { getCiSetup, rotateCiToken } from "../../api/ci";
 import { ApiError } from "../../api/client";
 
+// E20: the stage is generated PER TASK (review image over the PR diff vs the security
+// image over a read-only checkout); the copy names which one, and says what both
+// have in common — the agent fetches its config from ModelMatch at run time.
+function copyForTask(setup: CiSetup | null): { title: string; blurb: string; note: string } {
+  if (setup?.task === "security") {
+    return {
+      title: "Add the security stage to your pipeline",
+      blurb:
+        "Scans the whole checkout (mounted read-only) for vulnerabilities and posts each run. A critical finding fails the stage.",
+      note:
+        "The agent fetches this project's model from ModelMatch on every run and posts the result itself — nothing else to wire.",
+    };
+  }
+  return {
+    title: "Add the review stage to your pipeline",
+    blurb:
+      "Reviews each pull request's diff for security and style issues and posts each run's savings.",
+    note:
+      "The agent fetches this project's model and review preferences from ModelMatch on every run, so changing them here applies on the next build without editing the pipeline.",
+  };
+}
+
 // Fetches and shows the Jenkins stage snippet + the per-project ingest token. The
 // token is mint-once: shown clearly "copy now" when present, explained as already
 // minted when null. "Go to dashboard" advances to the new project's dashboard.
@@ -62,6 +84,8 @@ export function CiSetupView({
     load();
   }, [projectId, load]);
 
+  const copy = copyForTask(setup);
+
   return (
     <div className="card flex flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -69,10 +93,8 @@ export function CiSetupView({
           <Terminal size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-lg font-semibold">Add this stage to your pipeline</div>
-          <div className="text-sm text-faint">
-            Runs the CI code-review agent and ingests each run's savings.
-          </div>
+          <div className="text-lg font-semibold">{copy.title}</div>
+          <div className="text-sm text-faint">{copy.blurb}</div>
         </div>
       </div>
 
@@ -131,7 +153,10 @@ export function CiSetupView({
 
           {/* the snippet */}
           <div>
-            <div className="mb-1 text-xs font-medium text-muted">Jenkins stage</div>
+            <div className="mb-1 flex items-baseline justify-between gap-3">
+              <span className="text-xs font-medium text-muted">Jenkins stage</span>
+              <span className="text-xs text-faint">{copy.note}</span>
+            </div>
             <pre className="max-h-[26rem] overflow-auto rounded-md border border-border bg-panel-2 p-4 text-xs leading-relaxed text-gray-200">
               <code>{setup.snippet}</code>
             </pre>

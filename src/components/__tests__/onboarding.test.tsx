@@ -11,7 +11,9 @@ import {
   jenkinsConnectionFixture,
   ciSetupFixture,
   ciSetupNoTokenFixture,
+  ciSetupSecurityFixture,
 } from "../../test/fixtures";
+import { ReviewPreferencesForm } from "../onboarding/ReviewPreferencesForm";
 
 vi.mock("../../api/recommend", () => ({ postRecommendation: vi.fn() }));
 import { postRecommendation } from "../../api/recommend";
@@ -185,11 +187,18 @@ describe("Onboarding defer-create", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
+    // E20: the review task's preferences step — type some, Continue; still nothing created
+    fireEvent.change(await screen.findByLabelText("Review preferences"), {
+      target: { value: "  Flag any use of eval().  " },
+    });
+    expect(createProject).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
     // now on the Jenkins step, still nothing created
     await screen.findByLabelText("Jenkins base URL");
     expect(createProject).not.toHaveBeenCalled();
 
-    // valid Jenkins submit creates then connects
+    // valid Jenkins submit creates (WITH the task + trimmed preferences) then connects
     fillJenkins();
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
@@ -198,6 +207,8 @@ describe("Onboarding defer-create", () => {
       name: "acme-api",
       selectedOptionId: 11,
       baselineModelId: 9,
+      taskType: "ci_review",
+      reviewPreferences: "Flag any use of eval().",
     });
     await waitFor(() =>
       expect(connectJenkins).toHaveBeenCalledWith(createdProjectFixture.id, {
@@ -217,6 +228,7 @@ describe("Onboarding defer-create", () => {
       target: { value: "acme-api" },
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /skip for now/i }));
     await screen.findByLabelText("Jenkins base URL");
 
     fireEvent.click(screen.getByRole("button", { name: /back to dashboard/i }));
@@ -236,6 +248,7 @@ describe("Onboarding defer-create", () => {
       target: { value: "acme-api" },
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /skip for now/i }));
     await screen.findByLabelText("Jenkins base URL");
 
     fillJenkins();
@@ -257,6 +270,7 @@ describe("Onboarding defer-create", () => {
       target: { value: "acme-api" },
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /skip for now/i }));
     await screen.findByLabelText("Jenkins base URL");
 
     // the stepper is navigation: click step 1 to go back
@@ -279,6 +293,7 @@ describe("Onboarding defer-create", () => {
       target: { value: "acme-api" },
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /skip for now/i }));
     await screen.findByLabelText("Jenkins base URL");
     fillJenkins();
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
@@ -297,6 +312,17 @@ describe("Onboarding defer-create", () => {
       }),
     );
     expect(createProject).toHaveBeenCalledTimes(1); // never a second project
+
+    // the preferences step again (project exists now): typing + Continue PATCHes them
+    fireEvent.change(await screen.findByLabelText("Review preferences"), {
+      target: { value: "Ignore import ordering." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() =>
+      expect(updateProject).toHaveBeenCalledWith(createdProjectFixture.id, {
+        reviewPreferences: "Ignore import ordering.",
+      }),
+    );
     // and the Jenkins step comes back prefilled with what was typed before
     expect(await screen.findByLabelText("Jenkins base URL")).toHaveValue(
       "https://jenkins.example.com",
@@ -307,9 +333,50 @@ describe("Onboarding defer-create", () => {
     vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
     render(<Onboarding onDone={vi.fn()} />);
 
-    // before any pick, both later steps are unreachable
-    expect(screen.getByRole("button", { name: "Step 2: Connect Jenkins" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Step 3: CI setup" })).toBeDisabled();
+    // before any pick, every later step is unreachable (review task: 4 steps)
+    expect(screen.getByRole("button", { name: "Step 2: Review preferences" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step 3: Connect Jenkins" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step 4: CI setup" })).toBeDisabled();
+  });
+
+  it("skips the preferences step for a security project and creates it with its task", async () => {
+    vi.mocked(postRecommendation).mockResolvedValue(recommendationFixture);
+    vi.mocked(createProject).mockResolvedValue({
+      ...createdProjectFixture,
+      taskType: "security_analysis",
+    });
+    vi.mocked(connectJenkins).mockResolvedValue(jenkinsConnectionFixture);
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupSecurityFixture);
+    render(<Onboarding onDone={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Security analysis/ }));
+    fireEvent.click(screen.getByRole("button", { name: /get recommendation/i }));
+    // the stepper has no preferences step on this task
+    expect(await screen.findByRole("button", { name: "Step 2: Connect Jenkins" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Review preferences/ })).not.toBeInTheDocument();
+
+    fireEvent.change(await screen.findByLabelText("Project name"), {
+      target: { value: "vuln-api" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    // straight to Jenkins — no preferences screen in between
+    await screen.findByLabelText("Jenkins base URL");
+    expect(screen.queryByLabelText("Review preferences")).not.toBeInTheDocument();
+
+    fillJenkins("https://jenkins.example.com", "vuln-api/main");
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        name: "vuln-api",
+        selectedOptionId: 11,
+        baselineModelId: 9,
+        taskType: "security_analysis",
+        reviewPreferences: null,
+      }),
+    );
+    // the CI-setup step words itself for the security stage
+    expect(await screen.findByText(/Add the security stage/i)).toBeInTheDocument();
+    expect(screen.getByText(/critical finding fails the stage/i)).toBeInTheDocument();
   });
 
   it("shows Bedrock Jenkins requirements when the user picks Nova 2 Lite", async () => {
@@ -320,6 +387,7 @@ describe("Onboarding defer-create", () => {
       target: { value: "acme-api" },
     });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /skip for now/i }));
 
     await screen.findByLabelText("Jenkins base URL");
     expect(screen.queryByText("modelmatch-model-api-key")).not.toBeInTheDocument();
@@ -328,7 +396,57 @@ describe("Onboarding defer-create", () => {
   });
 });
 
+describe("ReviewPreferencesForm (E20)", () => {
+  it("hands null up when left empty ('Skip for now'), and the trimmed text otherwise", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPreferencesForm onSubmit={onSubmit} />);
+    expect(screen.getByRole("button", { name: /skip for now/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /skip for now/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(null));
+
+    fireEvent.change(screen.getByLabelText("Review preferences"), {
+      target: { value: "  Flag eval().  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenLastCalledWith("Flag eval()."));
+  });
+
+  it("blocks text over the 2000-character contract bound", () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<ReviewPreferencesForm onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText("Review preferences"), {
+      target: { value: "x".repeat(2001) },
+    });
+    expect(screen.getByText("2001 / 2000")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("prefills an existing value (stepping back)", () => {
+    render(<ReviewPreferencesForm initialValue="keep me" onSubmit={vi.fn().mockResolvedValue(undefined)} />);
+    expect(screen.getByLabelText("Review preferences")).toHaveValue("keep me");
+    expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument();
+  });
+});
+
 describe("CiSetupView", () => {
+  it("words the review task's stage and notes the run-time fetch", async () => {
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
+    render(<CiSetupView projectId={7} onDone={vi.fn()} />);
+    expect(await screen.findByText(/Add the review stage/i)).toBeInTheDocument();
+    expect(screen.getByText(/fetches this project's model and review preferences/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Add the security stage/i)).not.toBeInTheDocument();
+  });
+
+  it("words the security task's stage (read-only checkout, critical finding fails)", async () => {
+    vi.mocked(getCiSetup).mockResolvedValue(ciSetupSecurityFixture);
+    render(<CiSetupView projectId={7} onDone={vi.fn()} />);
+    expect(await screen.findByText(/Add the security stage/i)).toBeInTheDocument();
+    expect(screen.getByText(/read-only/i)).toBeInTheDocument();
+    expect(screen.getByText(/modelmatch-agent-security:1.1.0/)).toBeInTheDocument();
+  });
+
   it("shows a loading state, then the snippet + the mint-once token", async () => {
     vi.mocked(getCiSetup).mockResolvedValue(ciSetupFixture);
     render(<CiSetupView projectId={7} onDone={vi.fn()} />);

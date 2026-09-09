@@ -55,6 +55,11 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   await page.getByLabel("Project name").fill("acme-api");
   await page.getByRole("button", { name: "Continue" }).click();
 
+  // --- E20: review preferences (review task only) → Continue; still no project ---
+  await expect(page.getByText("Review preferences", { exact: true })).toBeVisible();
+  await page.getByRole("textbox", { name: "Review preferences" }).fill("Flag any use of eval().");
+  await page.getByRole("button", { name: "Continue" }).click();
+
   // --- Jenkins step → Continue creates the project, then connects ---
   await expect(page.getByText("Point ModelMatch at your Jenkins")).toBeVisible();
   await page.getByLabel("Jenkins base URL").fill("https://jenkins.example.com");
@@ -69,7 +74,10 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   // (exact: the chat opener's expanded grounding snippet also contains "cumulative saved")
   await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "CI runs" })).toBeVisible(); // runs table
-  await expect(page.getByText(/build 101/)).toBeVisible(); // the seeded run's table row
+  // the seeded run's table row: build 101, the agent's gate recorded as Pass (E20 column)
+  const row101 = page.getByRole("row", { name: /101/ });
+  await expect(row101).toBeVisible();
+  await expect(row101.getByText("Pass")).toBeVisible();
 
   // --- grounded chat: the server-seeded "explain my spend" opener renders ---
   const chat = page.getByRole("region", { name: "Grounded chat" });
