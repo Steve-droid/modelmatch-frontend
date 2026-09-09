@@ -77,9 +77,11 @@ export function ProjectActions({
           role="menu"
           className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-border bg-panel-2 py-1"
         >
+          {!project.isExample && <>
           <MenuItem icon={<Plug size={13} />} label="Edit Jenkins" onClick={() => open("editJenkins")} />
           <MenuItem icon={<Terminal size={13} />} label="CI setup & token" onClick={() => open("cisetup")} />
           <MenuItem icon={<Pencil size={13} />} label="Re-pick model" onClick={() => open("repick")} />
+          </>}
           <MenuItem
             icon={<Trash2 size={13} />}
             label="Delete CI-Agent"

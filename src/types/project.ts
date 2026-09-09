@@ -18,4 +18,6 @@ export interface Project {
   // Fully onboarded = a Jenkins connection exists AND its CI ingest token was minted.
   // false → the dashboard badges the project "setup incomplete" with an edit path.
   setupComplete: boolean;
+  // Optional for compatibility while the backend rolls out this capability.
+  isExample?: boolean;
 }
