@@ -34,7 +34,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
       <div className="auth-form-panel">
-        <div className="w-full max-w-sm">{children}</div>
+        <div className="w-full max-w-sm">
+          {children}
+          <p className="mt-6 text-center text-xs text-muted">
+            <a href="/privacy.html" className="underline underline-offset-4 hover:text-accent">Privacy policy</a>
+          </p>
+        </div>
       </div>
     </div>
   );

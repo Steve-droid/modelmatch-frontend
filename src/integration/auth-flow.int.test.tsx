@@ -14,7 +14,10 @@ import { getToken } from "../api/client";
 
 const BASE = "http://localhost:8000";
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  server.use(http.get(`${BASE}/auth/google/config`, () => HttpResponse.json({ enabled: false })));
+});
 
 function fill(email: string, password: string) {
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: email } });

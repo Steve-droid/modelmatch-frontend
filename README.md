@@ -233,3 +233,29 @@ v0.3.0 login + dashboard + chat · v0.2.0 first savings dashboard. Full log: `gi
 Steve Levit — stevelevit230@gmail.com
 </content>
 </invoke>
+
+### Google sign-in (P38n)
+
+The login and registration pages discover availability from `/auth/google/config`.
+Set the backend's public `GOOGLE_CLIENT_ID` and register this frontend's exact origin
+in Google Auth Platform and backend CORS. No Vite client ID or client secret is needed.
+The official GIS script loads only when Google login is enabled; blocked scripts and
+failed sign-ins offer retry while the password form remains available. Closing Google's
+popup leaves the form usable. Success stores only the ordinary app JWT through the
+existing session mechanism. Google credentials and short-lived challenges stay in memory.
+
+If you add CSP/COOP later, permit Google's GIS script/frame/connect endpoints per
+[Google's setup guide](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid),
+and use `same-origin-allow-popups` when COOP is enforced. Production currently sets neither.
+Live Google consent and popup behavior require a configured web client; offline tests
+simulate the provider and do not establish that deployment configuration is valid.
+
+`npm run e2e:google` runs six offline browser checks on an isolated Vite server
+at port 5318. They also run with the existing `happy-path` Playwright project.
+
+
+The public privacy policy is `/privacy.html`, a standalone HTML document copied by Vite
+into the image and served directly by nginx. It needs no session, API, JavaScript or
+third-party resources. Both authentication screens link to it. Google Branding uses
+`https://modicum.cloud` for the homepage and, **only after deployment and HTTP/content
+verification**, `https://modicum.cloud/privacy.html` for the privacy-policy link.

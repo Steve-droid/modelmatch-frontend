@@ -1,3 +1,4 @@
+vi.mock("../../api/google", () => ({ googleConfig: vi.fn().mockResolvedValue({ enabled: false }) }));
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 

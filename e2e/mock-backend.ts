@@ -221,6 +221,10 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
     };
 
     // --- auth ---
+    if (path === "/auth/google/config" && method === "GET") {
+      return json(route, { enabled: false });
+    }
+
     if (path === "/auth/login" && method === "POST") {
       const b = body();
       if (!b?.email || !b?.password) bad(`POST /auth/login bad body: ${req.postData()}`);

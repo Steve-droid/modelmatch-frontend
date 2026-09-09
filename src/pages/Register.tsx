@@ -3,6 +3,7 @@ import { Loader2, UserPlus } from "lucide-react";
 import { login, register } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
 import { AuthLayout } from "../components/AuthLayout";
+import { GoogleSignIn } from "../components/GoogleSignIn";
 import { PasswordField } from "../components/PasswordField";
 
 // Sign-up screen. Creates the account, then logs in to obtain a JWT (register itself
@@ -68,6 +69,8 @@ export function Register({
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Create your account</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">Your next CI agent starts here.</p>
         </div>
+
+        <GoogleSignIn onAuthed={onAuthed} />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <label className="flex flex-col gap-2 text-sm font-medium text-gray-300">
