@@ -9,7 +9,7 @@ async function mockGoogle(page: Page, status = 200) {
   await page.route("**/auth/google/challenge", (route) => route.fulfill({
     json: { clientId: "offline-client", nonce: "browser-nonce", challenge: "browser-challenge" },
   }));
-  await page.route("https://accounts.google.com/gsi/client", (route) => route.fulfill({
+  await page.route("https://accounts.google.com/gsi/client?hl=en", (route) => route.fulfill({
     contentType: "application/javascript",
     body: `window.google = {accounts: {id: {
       initialize(options) { this.options = options; },
