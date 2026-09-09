@@ -180,7 +180,7 @@ html[data-navigation="back"]::view-transition-old(root) { animation-name: page-o
   .auth-layout { grid-template-columns: 1fr; }
   .auth-story { grid-template-rows: auto auto; min-height: auto; padding: 28px 24px; border-right: 0; border-bottom: 1px solid #262a31; }
   .auth-message { padding-block: 28px 4px; }
-  .auth-message > .eyebrow, .auth-message > p:not(:first-of-type), .auth-message > div { display: none; }
+  .auth-message > p:not(:first-of-type), .auth-message > div { display: none; }
   .auth-message > p:first-of-type { margin-top: 0; font-size: 32px; }
   .auth-message br { display: none; }
   .auth-message br::after { content: " "; }

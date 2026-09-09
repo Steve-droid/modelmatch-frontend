@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowUpRight, GitPullRequest } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { ModelNamesBackdrop } from "./home/ModelNamesBackdrop";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
 
@@ -15,8 +15,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
         <ModelNamesBackdrop position="above" />
         <div className="auth-message relative z-10">
-          <span className="eyebrow"><GitPullRequest size={15} /> Smarter models. Leaner CI.</span>
-          <p className="mt-7 text-balance text-4xl font-semibold leading-[1.12] tracking-[-0.045em] text-gray-50 lg:text-6xl">
+          <p className="text-balance text-4xl font-semibold leading-[1.12] tracking-[-0.045em] text-gray-50 lg:text-6xl">
             Great reviews.<br />{" "}
             <span className="text-signal">Less spend.</span>
           </p>
