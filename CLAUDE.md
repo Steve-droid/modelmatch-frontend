@@ -1,6 +1,8 @@
 # CLAUDE.md — modelmatch-frontend
 
-**Status: ACTIVE.** React SPA for ModelMatch. See the umbrella `../CLAUDE.md` and the spec in
+> Modicum was previously ModelMatch. Repository and infrastructure identifiers retain `modelmatch` for compatibility.
+
+**Status: ACTIVE.** React SPA for Modicum. See the umbrella `../CLAUDE.md` and the spec in
 `../docs/planning/` (esp. `architecture.md` §4.1 dashboard + §4.2 chat, and §10 pages).
 
 ## Responsibilities

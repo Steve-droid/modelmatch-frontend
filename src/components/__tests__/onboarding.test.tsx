@@ -454,7 +454,7 @@ describe("CiSetupView", () => {
     expect(screen.getByText(/Loading setup…/)).toBeInTheDocument();
     expect(await screen.findByText(/shown once/i)).toBeInTheDocument();
     expect(screen.getByText("mmci_s3cr3t_one_time_value")).toBeInTheDocument();
-    expect(screen.getByText(/stage\('ModelMatch'\)/)).toBeInTheDocument();
+    expect(screen.getByText(/stage\('Modicum'\)/)).toBeInTheDocument();
   });
 
   it("explains the null-token case (already minted) without showing a token", async () => {

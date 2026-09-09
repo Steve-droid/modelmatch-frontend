@@ -6,7 +6,7 @@ import { ApiError } from "../../api/client";
 
 // E20: the stage is generated PER TASK (review image over the PR diff vs the security
 // image over a read-only checkout); the copy names which one, and says what both
-// have in common — the agent fetches its config from ModelMatch at run time.
+// have in common — the agent fetches its config from Modicum at run time.
 function copyForTask(setup: CiSetup | null): { title: string; blurb: string; note: string } {
   if (setup?.task === "security") {
     return {
@@ -14,7 +14,7 @@ function copyForTask(setup: CiSetup | null): { title: string; blurb: string; not
       blurb:
         "Scans the whole checkout (mounted read-only) for vulnerabilities and posts each run. A critical finding fails the stage.",
       note:
-        "The agent fetches this project's model from ModelMatch on every run and posts the result itself — nothing else to wire.",
+        "The agent fetches this project's model from Modicum on every run and posts the result itself — nothing else to wire.",
     };
   }
   return {
@@ -22,7 +22,7 @@ function copyForTask(setup: CiSetup | null): { title: string; blurb: string; not
     blurb:
       "Reviews each pull request's diff for security and style issues and posts each run's savings.",
     note:
-      "The agent fetches this project's model and review preferences from ModelMatch on every run, so changing them here applies on the next build without editing the pipeline.",
+      "The agent fetches this project's model and review preferences from Modicum on every run, so changing them here applies on the next build without editing the pipeline.",
   };
 }
 

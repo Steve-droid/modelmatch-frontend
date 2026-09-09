@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "../lib/brand";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, Terminal } from "lucide-react";
 import type { ChatMessage, RetrievalTrace } from "../types/chat";
@@ -142,7 +143,7 @@ export function ChatPanel({
         </span>
         <div className="leading-tight">
           <div className="text-sm font-semibold text-gray-100">
-            Ask ModelMatch
+            Ask {BRAND_NAME}
           </div>
           <div className="mt-1 text-xs leading-relaxed text-muted">
             Answers grounded in your savings and model catalog

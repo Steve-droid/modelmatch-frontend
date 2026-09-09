@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "../lib/brand";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, House, Plus } from "lucide-react";
 import type { SavingsRange, SavingsResponse } from "../types/savings";
@@ -387,9 +388,9 @@ function Header({
             className="flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel">
-              <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
+              <img src={markUrl} alt={BRAND_NAME} className="h-4 w-4" />
             </span>
-            <span className="font-semibold tracking-tight">ModelMatch</span>
+            <span className="font-semibold tracking-tight">{BRAND_NAME}</span>
           </button>
           {projectId != null && projects.length > 0 && (
             <ProjectSwitcher

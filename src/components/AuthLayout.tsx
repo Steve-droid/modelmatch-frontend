@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "../lib/brand";
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { ModelNamesBackdrop } from "./home/ModelNamesBackdrop";
@@ -11,7 +12,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div aria-hidden className="auth-glow" />
         <div className="relative z-10 flex items-center gap-3 text-lg font-semibold tracking-tight">
           <img src={markUrl} alt="" className="h-8 w-8" />
-          ModelMatch
+          {BRAND_NAME}
         </div>
         <ModelNamesBackdrop position="above" />
         <div className="auth-message relative z-10">

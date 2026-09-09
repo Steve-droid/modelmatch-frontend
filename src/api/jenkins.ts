@@ -1,5 +1,5 @@
 // Jenkins-connection API call. Metadata only (base URL + job name) — no secrets travel
-// to ModelMatch; the provider key + Jenkins token live in Jenkins credentials.
+// to Modicum; the provider key + Jenkins token live in Jenkins credentials.
 
 import { apiGet, apiPut } from "./client";
 import type { JenkinsConnectInput, JenkinsConnection } from "../types/ci";
