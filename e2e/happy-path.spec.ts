@@ -82,7 +82,7 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
 
   // --- grounded chat: the server-seeded "explain my spend" opener renders ---
   const chat = page.getByRole("region", { name: "Grounded chat" });
-  await expect(chat.getByText(/You've banked \$0\.045/)).toBeVisible();
+  await expect(chat.getByText(/You've saved \$0\.045/)).toBeVisible();
 
   // --- ask one grounded question → answer + retrieval trace ---
   await chat.getByLabel("Ask a question").fill("What model am I running?");
