@@ -28,7 +28,7 @@ export default defineConfig({
   projects: [
     {
       name: "happy-path",
-      testMatch: /happy-path\.spec\.ts/,
+      testMatch: /(happy-path|google-auth)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     {

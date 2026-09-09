@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="How Modicum handles account information, Google sign-in, project data and privacy requests." />
+    <title>Privacy policy · Modicum</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; color: #e5e7eb; background: #0b1018; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { max-width: 760px; margin: auto; padding: 48px 24px 72px; }
+      a { color: #9bd7ff; text-underline-offset: 4px; overflow-wrap: anywhere; }
+      a:hover { color: #d4edff; }
+      a:focus-visible { outline: 2px solid #9bd7ff; outline-offset: 5px; border-radius: 2px; }
+      header { border-bottom: 1px solid #293342; padding-bottom: 24px; }
+      h1 { font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.15; margin: 28px 0 16px; }
+      h2 { font-size: 1.2rem; margin: 32px 0 12px; color: #f9fafb; }
+      p, li { font-size: 1rem; line-height: 1.75; }
+      p { margin: 12px 0; }
+      li { margin-bottom: 10px; }
+      ul { padding-left: 24px; }
+      .muted { color: #a8b3c4; }
+      footer { border-top: 1px solid #293342; margin-top: 32px; padding-top: 24px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/" aria-label="Modicum home">Modicum</a>
+        <h1>Privacy policy</h1>
+        <p class="muted">Last updated: 9 September 2026</p>
+        <p>Modicum is a portfolio application operated by Steve Levit. It helps you choose an
+          AI model for CI code review or security analysis and compare cost savings with quality signals.</p>
+      </header>
+      <section aria-labelledby="information">
+        <h2 id="information">Information we handle</h2>
+        <ul>
+          <li><strong>Account information:</strong> your email address and an internal account ID.
+            Password accounts store a password hash, rather than the password itself.</li>
+          <li><strong>Google sign-in:</strong> Google sends a signed identity token, which may include
+            your email, name and profile picture. Modicum verifies the token and stores your Google
+            account identifier and email to create or recognize your account. We do not store your
+            Google name, picture or identity token, request your Google password, or access your
+            Gmail, Drive, contacts or calendar.</li>
+          <li><strong>Workspace information:</strong> projects, selected models, CI configuration,
+            review preferences, submitted run results and findings, token usage, calculated costs,
+            quality feedback, chat questions, answers and retrieval records. Uploaded catalog source
+            documents are stored separately in object storage.</li>
+          <li><strong>Operational information:</strong> request and error logs, network information
+            such as IP addresses, and performance and model-usage metrics used to operate and troubleshoot the service.</li>
+        </ul>
+      </section>
+      <section aria-labelledby="use">
+        <h2 id="use">How information is used and shared</h2>
+        <p>We use account information to sign you in and keep your workspace associated with your
+          account. We use project and run data to provide recommendations, CI setup, savings and
+          quality dashboards, and grounded chat answers.</p>
+        <p>Google provides the sign-in service. The Google button loads resources from Google,
+          so your browser communicates with Google on the sign-in and registration screens.
+          Google's handling of that interaction is covered by its
+          <a href="https://policies.google.com/privacy">privacy policy</a>.</p>
+        <p>Amazon Web Services hosts the application and its data in the Mumbai region
+          (ap-south-1). Chat questions and relevant savings and catalog context, and catalog
+          ingestion documents, are processed by Amazon Bedrock; model processing may use
+          regional routing beyond Mumbai.</p>
+        <p>The CI agent runs in your own CI environment using your provider key. It sends code
+          and instructions to the model provider you choose, under that provider's policies.
+          Modicum receives the run results you submit, including findings that may contain code
+          details. Keep credentials in your CI credential store and avoid submitting confidential
+          information to this portfolio service.</p>
+        <p>Modicum does not sell your personal information, use Google account information for
+          advertising, or use it to train AI models. Google account identifiers are used for
+          authentication, not included in model prompts.</p>
+      </section>
+      <section aria-labelledby="storage">
+        <h2 id="storage">Browser storage and security</h2>
+        <p>Modicum stores its own session token in your browser's local storage so you can stay
+          signed in. Signing out removes that local token. Google credentials and temporary
+          sign-in challenges are held in memory for the sign-in attempt; the server records
+          used challenges to prevent replay and clears expired records during later sign-ins.</p>
+        <p>The service uses HTTPS, password hashing and account-scoped access checks. Google-only
+          accounts have no Modicum password, and matching email addresses do not automatically
+          link a Google account to an existing password account.</p>
+      </section>
+      <section aria-labelledby="retention">
+        <h2 id="retention">Retention and deletion requests</h2>
+        <p>Account and workspace records are retained until removed by the operator or the
+          portfolio environment is retired. There is currently no automatic account-expiry
+          schedule or self-service account-deletion screen. Operational logs and backup copies
+          may have different lifetimes from active application records.</p>
+        <p>To request access, correction or deletion of your account and associated data, email
+          <a href="mailto:stevelevit230@gmail.com">stevelevit230@gmail.com</a> from the address
+          associated with your account. We may ask you to verify ownership and will explain what
+          can be removed, including any remaining backup copies. Do not send passwords or tokens.</p>
+        <p>You can also remove Modicum's Google connection in your
+          <a href="https://myaccount.google.com/connections">Google account settings</a>.
+          Removing that connection or signing out does not itself delete your Modicum data.</p>
+      </section>
+      <footer>
+        <p>Questions about this policy: <a href="mailto:stevelevit230@gmail.com">stevelevit230@gmail.com</a>.</p>
+        <a href="/">Back to Modicum</a>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -15,7 +15,8 @@
     "e2e:headed": "playwright test --project=happy-path --headed",
     "e2e:ci": "playwright test --config playwright.config.e2e.ts",
     "e2e:all": "playwright test",
-    "test:e2e": "playwright test --project=happy-path"
+    "test:e2e": "playwright test --project=happy-path",
+    "e2e:google": "playwright test --config playwright.config.google.ts"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",

@@ -3,6 +3,7 @@ import { Loader2, LogIn } from "lucide-react";
 import { login } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
 import { AuthLayout } from "../components/AuthLayout";
+import { GoogleSignIn } from "../components/GoogleSignIn";
 import { PasswordField } from "../components/PasswordField";
 
 // Exchange credentials for a JWT, then open the home hub. Authentication forms
@@ -47,6 +48,8 @@ export function Login({
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">Sign in to your Modicum workspace.</p>
         </div>
+
+        <GoogleSignIn onAuthed={onAuthed} />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <label className="flex flex-col gap-2 text-sm font-medium text-gray-300">
