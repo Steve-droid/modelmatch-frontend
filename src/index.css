@@ -5,14 +5,8 @@
 @tailwind utilities;
 
 @layer base {
-  /* The savings dashboard uses flatter panels than the rest of the app (P38 F1);
-     everything else keeps the softer card radius. Colours are global (tailwind.config). */
   :root {
-    --card-radius: 0.5rem;
-  }
-
-  .theme-dash {
-    --card-radius: 4px;
+    --card-radius: 1rem;
   }
 
   html,
@@ -31,7 +25,7 @@
 @layer components {
   /* A single elevated card. No cards inside cards (design rule). */
   .card {
-    @apply border border-border bg-panel p-4;
+    @apply border border-border bg-panel p-5;
     border-radius: var(--card-radius);
   }
 
@@ -53,7 +47,7 @@
   }
 }
 
-/* Home Create-section backdrop: catalog model names fading in and out (low-contrast). */
+/* Auth backdrop: catalog model names fading in and out away from the copy. */
 @keyframes modelFloat {
   0%,
   100% {
@@ -64,20 +58,164 @@
   }
 }
 
-/* Home Agents-section pipeline backdrop: dashes flowing along the stage connectors,
-   and a soft pulse on the CI-Agent (Review) stage. CSS-only — no bundle/image cost. */
-@keyframes pipelineFlow {
-  to {
-    stroke-dashoffset: -24;
+@layer base {
+  :focus-visible {
+    outline: 2px solid #9295ff;
+    outline-offset: 4px;
   }
 }
 
-@keyframes pipelinePulse {
-  0%,
-  100% {
-    opacity: 0.35;
+@layer components {
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-signal;
   }
-  50% {
-    opacity: 1;
+  .primary-action {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-accent bg-accent px-5 py-3 text-sm font-medium text-white transition-colors hover:border-accent/80 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .secondary-action {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-panel/60 px-5 py-3 text-sm font-medium text-gray-200 transition-colors hover:border-muted hover:bg-panel;
+  }
+  .auth-input {
+    @apply w-full rounded-xl border border-border bg-panel/70 px-4 py-3.5 text-sm text-gray-100 placeholder:text-faint transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+  .illustration-stage {
+    @apply rounded-2xl border border-border p-5;
+    background: linear-gradient(120deg, #1b2027, #11151a);
+  }
+  .illustration-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-canvas/40;
+  }
+  .model-chip {
+    @apply rounded-md border border-border px-2 py-1 text-[10px] text-muted;
+  }
+  .illustration-connector {
+    @apply flex h-7 items-center justify-center text-signal;
+  }
+  .code-line {
+    @apply h-1.5 rounded-full bg-gray-600/50;
+  }
+}
+
+.auth-layout {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  background: #0c0e12;
+}
+.auth-story {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(80px, 1fr) auto minmax(80px, 1fr) auto;
+  overflow: hidden;
+  min-height: 100dvh;
+  padding: clamp(32px, 5vw, 80px);
+  border-right: 1px solid #262a31;
+  background: radial-gradient(ellipse at 30% 50%, #17242e 0, #0d1219 48%, #0c0e12 80%);
+}
+.auth-message { padding-block: 64px; }
+.auth-ambient {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: space-around;
+  gap: 16px;
+  overflow: hidden;
+  pointer-events: none;
+  padding: 8px 0;
+  opacity: .65;
+}
+.auth-form-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 32px;
+}
+.auth-glow, .hero-glow {
+  position: absolute;
+  pointer-events: none;
+  width: 750px;
+  height: 750px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #35468824, #38697f0d 45%, transparent 70%);
+}
+.auth-glow { top: 25%; left: -40%; }
+.hero-glow { right: -80px; top: -50px; width: 1000px; height: 1000px; }
+.home-page { background: linear-gradient(130deg, #0a0b0d, #0e131c); }
+.review-illustration { width: 100%; max-width: 460px; margin-inline: auto; }
+.illustration-model { animation: model-highlight 9s ease-in-out infinite; }
+.illustration-review { animation: review-highlight 9s ease-in-out infinite; }
+.illustration-savings { animation: savings-highlight 9s ease-in-out infinite; }
+.review-line { animation: review-reveal 9s ease-in-out infinite; }
+.savings-bar { transform-origin: left; animation: savings-reveal 9s ease-in-out infinite; }
+@keyframes model-highlight { 0%, 32%, 100% { border-color: #565cc1; } 45%, 85% { border-color: #262a31; } }
+@keyframes review-highlight { 0%, 25%, 80%, 100% { border-color: #262a31; } 40%, 60% { border-color: #5b93a8; } }
+@keyframes savings-highlight { 0%, 50%, 100% { border-color: #262a31; } 65%, 90% { border-color: #3c7b66; } }
+@keyframes review-reveal { 0%, 25%, 100% { opacity: .3; } 45%, 90% { opacity: 1; } }
+@keyframes savings-reveal { 0%, 50%, 100% { transform: scaleX(.4); opacity: .4; } 70%, 90% { transform: scaleX(1); opacity: 1; } }
+
+/* One navigation system. Snapshot transitions never keep an old live form mounted. */
+.page-surface { height: 100%; outline: none; }
+::view-transition-group(root) { animation-duration: 320ms; }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+  animation-fill-mode: both;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { animation-name: page-out; }
+::view-transition-new(root) { animation-name: page-in; }
+html[data-navigation="forward"]::view-transition-new(root) { animation-name: page-forward; }
+html[data-navigation="back"]::view-transition-new(root) { animation-name: page-back; }
+html[data-navigation="forward"]::view-transition-old(root) { animation-name: page-out-left; }
+html[data-navigation="back"]::view-transition-old(root) { animation-name: page-out-right; }
+@keyframes page-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes page-out { to { opacity: 0; } }
+@keyframes page-forward { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes page-back { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes page-out-left { to { opacity: 0; transform: translateX(-12px); } }
+@keyframes page-out-right { to { opacity: 0; transform: translateX(12px); } }
+@supports not (view-transition-name: root) {
+  .page-surface { animation: page-in 300ms ease-out both; }
+}
+@media (max-width: 767px) {
+  .auth-layout { grid-template-columns: 1fr; }
+  .auth-story { grid-template-rows: auto auto; min-height: auto; padding: 28px 24px; border-right: 0; border-bottom: 1px solid #262a31; }
+  .auth-message { padding-block: 28px 4px; }
+  .auth-message > .eyebrow, .auth-message > p:not(:first-of-type), .auth-message > div { display: none; }
+  .auth-message > p:first-of-type { margin-top: 0; font-size: 32px; }
+  .auth-message br { display: none; }
+  .auth-message br::after { content: " "; }
+  .auth-form-panel { padding: 36px 24px 48px; }
+  .auth-ambient { display: none; }
+  .review-illustration { max-width: 400px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .model-name { opacity: .22; }
+}
+
+/* Workspace surfaces carry the same quiet canvas and geometry as auth/home. */
+.workspace-page {
+  background: radial-gradient(ellipse 900px 360px at 18% 0, #19283966, transparent), #0c0e12;
+}
+.workspace-page .card { border-color: #2a3039; }
+.workspace-page .text-faint { color: #929cab; }
+.workspace-header {
+  background: #0c0e12ed;
+  backdrop-filter: blur(16px);
+}
+.savings-hero {
+  background: linear-gradient(135deg, #5b93a81a, transparent 75%), #181b1f;
+}
+@layer components {
+  .compact-action {
+    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:border-muted hover:text-white;
+  }
+  .field-input {
+    @apply rounded-xl border border-border bg-canvas/40 px-4 py-3 text-sm text-gray-100 placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20;
   }
 }

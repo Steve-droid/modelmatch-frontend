@@ -3,7 +3,7 @@ import { mockBackend } from "./mock-backend";
 import { projectsFixture, securitySavingsFixture } from "../src/test/fixtures";
 
 // The S17 happy path: drive the REAL frontend end-to-end against a fully mocked backend
-// (route interception). Login → home hub → "Create a new CI-Agent" → recommend
+// (route interception). Login → home hub → "Set up a CI agent" → recommend
 // (ci_review) → pick → defer-create at the Jenkins step → CI-setup token → dashboard
 // (seeded by a mocked CI run) → grounded chat opener → ask one grounded question.
 //
@@ -14,7 +14,7 @@ const CREDS = { email: "demo@example.com", password: "modelmatch-demo-2026" };
 
 async function signIn(page: Page) {
   await page.getByLabel("Email").fill(CREDS.email);
-  await page.getByLabel("Password").fill(CREDS.password);
+  await page.getByLabel("Password", { exact: true }).fill(CREDS.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
@@ -24,7 +24,7 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
 
   // --- login → lands on the home hub (not straight to the dashboard) ---
   await signIn(page);
-  const createCta = page.getByRole("button", { name: "Create a new CI-Agent" });
+  const createCta = page.getByRole("button", { name: "Set up a CI agent" }).first();
   await expect(createCta).toBeVisible();
 
   // --- home → onboarding (drive the real CTA, not a deep link) ---
@@ -90,10 +90,12 @@ test("login → home → create a CI-Agent → dashboard → grounded chat", asy
   await expect(chat.getByText("What model am I running?")).toBeVisible(); // the user turn
   await expect(chat.getByText(/You're running Nova 2 Lite/)).toBeVisible(); // the answer
 
-  // the retrieval trace is a disclosure that starts EXPANDED on the newest answer
-  // (P38 F4) — its sources are already visible; clicking collapses them again
+  // The source count stays visible; evidence is available on request.
   const trace = chat.getByRole("button", { name: /Grounded on 2 sources/ });
   await expect(trace).toBeVisible();
+  await expect(trace).toHaveAttribute("aria-expanded", "false");
+  await expect(chat.getByText(/Nova 2 Lite · review_score/)).toBeHidden();
+  await trace.click();
   await expect(chat.getByText(/Nova 2 Lite · review_score/)).toBeVisible();
   await trace.click();
   await expect(chat.getByText(/Nova 2 Lite · review_score/)).toBeHidden();
@@ -134,12 +136,12 @@ test("home navigation: View my CI-Agents → dashboard, logo → home, browser B
   await signIn(page);
 
   // hub → dashboard via "View my CI-Agents"
-  await page.getByRole("button", { name: /View my CI-Agents/ }).click();
+  await page.getByRole("button", { name: /View my CI agents/ }).first().click();
   await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
 
   // dashboard logo (aria "Home") → back to the hub
-  await page.getByRole("button", { name: "Home" }).click();
-  await expect(page.getByRole("button", { name: "Create a new CI-Agent" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to home", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Set up a CI agent" }).first()).toBeVisible();
 
   // browser Back from the hub-after-dashboard returns to the dashboard (history nav)
   await page.goBack();
@@ -172,7 +174,7 @@ for (const width of [1440, 390]) {
     );
     await page.goto("/");
     await signIn(page);
-    await page.getByRole("button", { name: /View my CI-Agents/ }).click();
+    await page.getByRole("button", { name: /View my CI agents/ }).first().click();
     for (const [index, expected] of ["69,376", "0", "Not reported"].entries()) {
       const row = page.getByRole("row", { name: new RegExp(`cache-${index}`) });
       const before = await row.innerText();
@@ -202,3 +204,58 @@ for (const width of [1440, 390]) {
     expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
   });
 }
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`single-screen home and navigation focus (${reducedMotion})`, async ({ page }) => {
+    const mock = await mockBackend(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion });
+    await page.goto("/");
+    await signIn(page);
+    await expect(page.getByRole("button", { name: "Set up a CI agent", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "View my CI agents", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0);
+    await expect(page.getByText("Explore your workspace")).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeLessThan(2);
+    await page.getByRole("button", { name: "Set up a CI agent", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Set up a CI agent", exact: true })).toBeFocused();
+    const budget = page.getByRole("group", { name: "Budget sensitivity", exact: true });
+    const speed = page.getByRole("group", { name: "CI-Agent speed", exact: true });
+    await expect(budget.getByRole("button", { name: "High", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(speed.getByRole("button", { name: "Any", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await budget.getByRole("button", { name: "Low", exact: true }).click();
+    await expect(budget.getByRole("button", { name: "Low", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(budget.getByRole("button", { name: "High", exact: true })).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: "Back to home", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Home", exact: true })).toBeFocused();
+    // Smaller screens scroll the single page normally, with no section snapping.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByText("Savings count only when the quality signal holds.").scrollIntoViewIfNeeded();
+    await expect(page.getByText("Savings count only when the quality signal holds.")).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
+  });
+}
+
+test("auth backdrop keeps a clear zone around the message at desktop and tablet widths", async ({ page }) => {
+  await mockBackend(page);
+  await page.goto("/");
+  for (const width of [1440, 1024, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    const separation = await page.evaluate(() => {
+      const message = document.querySelector(".auth-message")!;
+      const first = message.firstElementChild!.getBoundingClientRect();
+      const last = message.lastElementChild!.getBoundingClientRect();
+      return {
+        top: first.top - document.querySelector(".auth-ambient-above")!.getBoundingClientRect().bottom,
+        bottom: document.querySelector(".auth-ambient-below")!.getBoundingClientRect().top - last.bottom,
+      };
+    });
+    expect(separation.top).toBeGreaterThanOrEqual(64);
+    expect(separation.bottom).toBeGreaterThanOrEqual(64);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".auth-ambient-above")).toBeHidden();
+  await expect(page.locator(".auth-ambient-below")).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+});

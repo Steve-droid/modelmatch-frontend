@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Loader2, LogIn } from "lucide-react";
 import { login } from "../api/auth";
 import { ApiError, setToken } from "../api/client";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
-import { VALUE_PROP } from "../lib/valueProp";
+import { AuthLayout } from "../components/AuthLayout";
+import { PasswordField } from "../components/PasswordField";
 
-// Sign-in screen. Exchanges email + password for a JWT, persists it, then hands off
-// to the dashboard. Compact dark card in the Command-Center language — not a landing
-// page. Replaces the out-of-band setToken bootstrap used through S14.
+// Exchange credentials for a JWT, then open the home hub. Authentication forms
+// share a responsive branded canvas; API/error behavior stays local to each form.
 export function Login({
   onAuthed,
   onRegister,
@@ -42,45 +41,30 @@ export function Login({
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center px-4">
-      <div className="card w-full max-w-sm">
-        <div className="mb-5 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel-2">
-            <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
-          </span>
-          <div className="leading-tight">
-            <div className="font-semibold tracking-tight">ModelMatch</div>
-            <div className="text-xs text-faint">{VALUE_PROP.headline}</div>
-          </div>
+    <AuthLayout>
+        <div className="mb-9">
+          <p className="eyebrow">YOUR WORKSPACE</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Sign in to your ModelMatch workspace.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <label className="flex flex-col gap-2 text-sm font-medium text-gray-300">
             Email
             <input
               type="email"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
+              className="auth-input"
               placeholder="you@example.com"
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-            Password
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md border border-border bg-panel-2 px-3 py-2 text-sm text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </label>
+          <PasswordField value={password} onChange={setPassword} autoComplete="current-password" />
 
           {error && (
-            <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+            <div role="alert" className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
               {error}
             </div>
           )}
@@ -88,7 +72,7 @@ export function Login({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="mt-1 flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="primary-action mt-2 w-full"
           >
             {submitting ? (
               <Loader2 size={15} className="animate-spin" />
@@ -99,7 +83,7 @@ export function Login({
           </button>
         </form>
 
-        <div className="mt-4 text-center text-xs text-muted">
+        <div className="mt-7 text-center text-sm text-muted">
           Don't have an account?{" "}
           <button
             type="button"
@@ -109,7 +93,6 @@ export function Login({
             Sign up
           </button>
         </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

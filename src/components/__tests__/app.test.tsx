@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { App } from "../../App";
 import { ApiError, clearToken, getToken, setToken } from "../../api/client";
@@ -21,6 +21,7 @@ vi.mock("../../api/auth", () => ({ login: vi.fn(), register: vi.fn() }));
 import { login, register } from "../../api/auth";
 
 beforeEach(() => {
+  vi.stubGlobal("scrollTo", vi.fn());
   clearToken();
   // App now restores its phase from window.history.state (so a reload stays on the
   // dashboard). jsdom persists that across tests in a file, so reset it to mimic a fresh
@@ -54,17 +55,17 @@ describe("App routing", () => {
     vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /view my ci-agents/i }));
+    fireEvent.click((await screen.findAllByRole("button", { name: /view my ci agents/i }))[0]);
     // the dashboard's agent switcher is the tell
     expect(await screen.findByLabelText("Select CI-Agent")).toBeInTheDocument();
   });
 
-  it("a new user (0 agents) is nudged to create their first agent → onboarding", async () => {
+  it("a new user can open setup directly from the home hero", async () => {
     setToken("jwt");
     vi.mocked(listProjects).mockResolvedValue([]);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /create your first ci-agent/i }));
+    fireEvent.click((await screen.findAllByRole("button", { name: /set up a ci agent/i }))[0]);
     expect(await screen.findByText(/Set up your CI agent/)).toBeInTheDocument();
   });
 
@@ -75,7 +76,7 @@ describe("App routing", () => {
     vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /view my ci-agents/i }));
+    fireEvent.click((await screen.findAllByRole("button", { name: /view my ci agents/i }))[0]);
     await screen.findByLabelText("Select CI-Agent");
     fireEvent.click(screen.getByRole("button", { name: /^home$/i }));
     expect(await screen.findByRole("heading", { name: VALUE_PROP.headline })).toBeInTheDocument();
@@ -148,5 +149,84 @@ describe("App auth-view toggle", () => {
 
     expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+  });
+});
+
+// Browsers may defer a transition's DOM callback until after it was skipped.
+// Exercise real App navigation against that ordering, especially sign-out.
+describe("Navigation transitions", () => {
+  const originalTransition = Object.getOwnPropertyDescriptor(document, "startViewTransition");
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
+  afterEach(() => {
+    if (originalTransition) Object.defineProperty(document, "startViewTransition", originalTransition);
+    else Reflect.deleteProperty(document, "startViewTransition");
+    if (originalMatchMedia) Object.defineProperty(window, "matchMedia", originalMatchMedia);
+    else Reflect.deleteProperty(window, "matchMedia");
+  });
+
+  function deferTransitions(reduced = false) {
+    const updates: Array<() => void> = [];
+    const skipped = vi.fn();
+    const start = vi.fn((update: () => void) => {
+      updates.push(update);
+      return { skipTransition: skipped, ready: Promise.resolve(), finished: new Promise(() => {}) };
+    });
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: start });
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: reduced }) });
+    return { updates, skipped, start };
+  }
+
+  it("a skipped pending navigation cannot restore protected content after sign-out", async () => {
+    const { updates, skipped } = deferTransitions();
+    setToken("jwt");
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+    await waitFor(() => expect(updates).toHaveLength(1));
+    act(() => updates.shift()!());
+    fireEvent.click(screen.getAllByRole("button", { name: /view my ci agents/i })[0]);
+    expect(updates).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /log out/i }));
+    act(() => updates.shift()!());
+    expect(skipped).toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "CI agents dashboard" })).not.toBeInTheDocument();
+    expect(getToken()).toBeNull();
+  });
+
+  it("the most recent destination wins when navigation is requested twice before a snapshot", async () => {
+    const { updates } = deferTransitions();
+    setToken("jwt");
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+    await waitFor(() => expect(updates).toHaveLength(1));
+    act(() => updates.shift()!());
+    fireEvent.click(screen.getAllByRole("button", { name: /view my ci agents/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /set up a ci agent/i })[0]);
+    act(() => { for (const update of updates) update(); });
+    expect(screen.getByRole("region", { name: "Set up a CI agent" })).toBeInTheDocument();
+    expect(window.history.state.mmPhase).toBe("onboarding");
+    expect(getSavings).not.toHaveBeenCalled();
+  });
+
+  it("reduced motion navigates immediately without capturing snapshots", async () => {
+    const { start } = deferTransitions(true);
+    setToken("jwt");
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+    fireEvent.click((await screen.findAllByRole("button", { name: /set up a ci agent/i }))[0]);
+    expect(screen.getByRole("region", { name: "Set up a CI agent" })).toBeInTheDocument();
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it("a fresh sign-in lands at home even after a previous dashboard session", async () => {
+    window.history.replaceState({ mmPhase: "dashboard" }, "");
+    vi.mocked(login).mockResolvedValue({ accessToken: "new-jwt", tokenType: "bearer" });
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("region", { name: "Home" })).toBeInTheDocument();
+    expect(window.history.state.mmPhase).toBe("home");
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronRight, Database, Coins, FileText } from "lucide-react";
 import type { RetrievalTrace } from "../types/chat";
 
@@ -15,30 +15,20 @@ function metaFor(kind: string) {
   return KIND_META[kind] ?? { label: kind, dot: "bg-faint", Icon: FileText };
 }
 
-// A collapsible "Grounded on N source(s)" disclosure under an assistant answer. Shows
-// only the human-readable kind/ref/snippet — never raw SQL or debug. `defaultOpen` is
-// how the latest answer shows its grounding without a click (P38 F4).
-export function RetrievalTraceDetail({
-  trace,
-  defaultOpen = false,
-}: {
-  trace: RetrievalTrace[];
-  defaultOpen?: boolean;
-}) {
-  // `defaultOpen` follows the newest answer, so it flips to false on the previous
-  // answer when a new one lands (that turn collapses again). An explicit click wins
-  // from then on.
-  const [override, setOverride] = useState<boolean | null>(null);
-  const open = override ?? defaultOpen;
+// The source count stays visible; lengthy evidence opens only on an explicit click.
+export function RetrievalTraceDetail({ trace }: { trace: RetrievalTrace[] }) {
+  const [open, setOpen] = useState(false);
+  const detailId = useId();
   if (trace.length === 0) return null;
 
   return (
-    <div className="mt-2 border-t border-border/60 pt-2">
+    <div className="mt-4 border-t border-border/60 pt-3">
       <button
         type="button"
-        onClick={() => setOverride(!open)}
+        onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex items-center gap-1 text-xs font-medium text-faint transition-colors hover:text-muted"
+        aria-controls={detailId}
+        className="flex items-center gap-1.5 rounded text-xs font-medium text-signal transition-colors hover:text-muted"
       >
         <ChevronRight
           size={12}
@@ -48,7 +38,7 @@ export function RetrievalTraceDetail({
       </button>
 
       {open && (
-        <ul className="mt-1.5 flex flex-col gap-1.5">
+        <ul id={detailId} className="mt-3 flex flex-col gap-3 leading-relaxed">
           {trace.map((t, i) => {
             const { label, dot, Icon } = metaFor(t.kind);
             return (
@@ -63,7 +53,7 @@ export function RetrievalTraceDetail({
                     {label}
                   </span>
                   {t.snippet && (
-                    <span className="block text-faint">{t.snippet}</span>
+                    <span className="mt-1 block break-words text-muted">{t.snippet}</span>
                   )}
                 </div>
               </li>

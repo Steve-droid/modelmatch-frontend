@@ -5,9 +5,6 @@ import { X } from "lucide-react";
 // Minimal dark-theme modal: a dimmed backdrop + a centered panel. Closes on Escape or
 // backdrop click. Used by the per-project actions (edit Jenkins / re-pick / delete).
 //
-// Carries `theme-dash` because the portal escapes the dashboard subtree that sets the
-// flat panel radius, and this modal is only ever opened from the dashboard.
-//
 // Rendered through a portal to <body>: the dashboard header (where the actions menu
 // lives) used to use `backdrop-blur`, and a `backdrop-filter` ancestor becomes the containing
 // block for `position: fixed` descendants AND its own stacking context. Without the
@@ -31,17 +28,17 @@ export function Modal({
 
   return createPortal(
     <div
-      className="theme-dash fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:p-8"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div
-        className="mt-8 w-full max-w-2xl rounded border border-border bg-panel"
+        className="mt-8 w-full max-w-2xl rounded-2xl border border-border bg-panel"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-semibold text-fg">{title}</h2>
           <button
             onClick={onClose}
@@ -51,7 +48,7 @@ export function Modal({
             <X size={16} />
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>,
     document.body,

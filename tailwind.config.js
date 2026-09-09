@@ -2,9 +2,7 @@
 // ModelMatch theme (P38): the Grafana-style palette — desaturated status trio, one
 // blue accent, flat dark surfaces — applied app-wide. Monospace for money, tokens, ids.
 //
-// The savings dashboard additionally opts into flatter panels via the `theme-dash`
-// class (see `--card-radius` in src/index.css); every other page keeps its existing
-// layout and component language, just repainted in this palette.
+// Shared workspace surfaces and card geometry live in src/index.css.
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {

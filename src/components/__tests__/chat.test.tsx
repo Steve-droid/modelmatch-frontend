@@ -39,15 +39,15 @@ describe("RetrievalTraceDetail", () => {
 });
 
 describe("ChatPanel", () => {
-  it("renders the server-seeded opener from history, grounding shown (F4)", async () => {
+  it("renders the server-seeded opener with its source count visible and evidence collapsed", async () => {
     render(<ChatPanel projectId={1} />);
     expect(await screen.findByText(/You've banked \$0.045/)).toBeInTheDocument();
-    // the opener is the latest answer → its trace is expanded by default
+    // Keep attribution visible without filling the panel with evidence.
     expect(screen.getByText(/Grounded on 1 source/)).toBeInTheDocument();
-    expect(screen.getByText(/cumulative saved/)).toBeInTheDocument();
+    expect(screen.queryByText(/cumulative saved/)).not.toBeInTheDocument();
   });
 
-  it("expands only the LATEST answer's trace; earlier answers stay collapsed", async () => {
+  it("keeps evidence collapsed on new answers and reveals it on request", async () => {
     vi.mocked(postChat).mockResolvedValue(chatAnswerFixture);
     render(<ChatPanel projectId={1} />);
     await screen.findByText(/You've banked/);
@@ -58,9 +58,13 @@ describe("ChatPanel", () => {
     fireEvent.click(screen.getByLabelText("Send"));
     await screen.findByText(/Claude Haiku 4.5 is your cheapest/);
 
-    // the new answer's sources are visible …
+    const disclosure = screen.getByRole("button", { name: "Grounded on 2 sources" });
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/claude-haiku-4-5 · ci_review/)).not.toBeInTheDocument();
+    fireEvent.click(disclosure);
+    expect(disclosure).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(/claude-haiku-4-5 · ci_review/)).toBeInTheDocument();
-    // … while the older opener's collapsed again
+    // Opening the new answer does not open the older one.
     expect(screen.queryByText(/cumulative saved/)).not.toBeInTheDocument();
   });
 

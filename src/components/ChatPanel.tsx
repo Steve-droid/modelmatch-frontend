@@ -132,32 +132,26 @@ export function ChatPanel({
   }
 
   const nearLimit = input.length > MAX_CHARS - 200;
-  // Index of the newest assistant answer — the only turn whose retrieval trace opens
-  // by default (older answers stay collapsed so the thread reads as a log).
-  const lastAnswerIndex = messages.reduce(
-    (last, m, i) => (m.role === "assistant" && m.variant === "answer" ? i : last),
-    -1,
-  );
 
   return (
-    <section className="card flex h-full flex-col gap-0 p-0" aria-label="Grounded chat">
+    <section className="card flex h-full min-w-0 flex-col gap-0 overflow-hidden p-0" aria-label="Grounded chat">
       {/* header */}
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="text-faint">
-          <Terminal size={14} />
+      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-signal/10 text-signal">
+          <Terminal size={17} />
         </span>
         <div className="leading-tight">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted">
+          <div className="text-sm font-semibold text-gray-100">
             Ask ModelMatch
           </div>
-          <div className="text-xs text-faint">
-            Nova Lite via Bedrock · answers only from your savings + catalog
+          <div className="mt-1 text-xs leading-relaxed text-muted">
+            Answers grounded in your savings and model catalog
           </div>
         </div>
       </div>
 
       {/* messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5">
         {loading && (
           <div className="flex items-center gap-2 text-sm text-muted">
             <Loader2 size={14} className="animate-spin" />
@@ -177,16 +171,14 @@ export function ChatPanel({
           </p>
         )}
 
-        <div className="flex flex-col gap-3">
-          {messages.map((m, i) => (
+        <div className="flex flex-col gap-5">
+          {messages.map((m) => (
             <ChatMessageBubble
               key={m.key}
               role={m.role}
               text={m.text}
               trace={m.trace}
               variant={m.variant}
-              // the newest answer shows its grounding expanded; older ones collapse
-              traceOpen={i === lastAnswerIndex}
             />
           ))}
 
@@ -200,8 +192,8 @@ export function ChatPanel({
       </div>
 
       {/* composer */}
-      <div className="border-t border-border p-3">
-        <div className="flex items-end gap-2 rounded border border-border bg-panel-2 px-2 py-1.5 focus-within:border-accent">
+      <div className="border-t border-border p-4">
+        <div className="flex items-end gap-2 rounded-xl border border-border bg-canvas/40 px-3 py-3 focus-within:border-accent">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -211,14 +203,14 @@ export function ChatPanel({
             disabled={loading || !!loadError}
             placeholder="Ask a follow-up…"
             aria-label="Ask a question"
-            className="max-h-28 flex-1 resize-none bg-transparent text-sm text-fg placeholder:text-faint focus:outline-none disabled:opacity-50"
+            className="max-h-28 min-w-0 flex-1 resize-none bg-transparent text-sm text-fg placeholder:text-faint focus:outline-none disabled:opacity-50"
           />
           <button
             type="button"
             onClick={() => void handleSend()}
             disabled={!canSend}
             aria-label="Send"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-accent text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send size={14} />
           </button>

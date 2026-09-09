@@ -44,9 +44,9 @@ export function ReviewPreferencesForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="card flex flex-col gap-5 p-6 sm:p-8">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/20 text-accent">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent/20 text-accent">
           <ListChecks size={15} />
         </span>
         <div className="leading-tight">
@@ -68,7 +68,7 @@ export function ReviewPreferencesForm({
           aria-label="Review preferences"
           aria-invalid={over}
           rows={5}
-          className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm leading-relaxed text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
+          className="rounded-xl border border-border bg-panel-2 px-3 py-2.5 text-sm leading-relaxed text-gray-100 placeholder:text-faint focus:border-accent/50 focus:outline-none"
         />
         <span className={`num self-end text-xs ${over ? "text-risk" : "text-faint"}`}>
           {trimmed.length} / {REVIEW_PREFERENCES_MAX}
@@ -76,7 +76,7 @@ export function ReviewPreferencesForm({
       </label>
 
       {error && (
-        <div className="rounded-md border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
+        <div className="rounded-xl border border-risk/40 bg-risk/10 px-3 py-2 text-sm text-risk">
           {error}
         </div>
       )}
@@ -84,7 +84,7 @@ export function ReviewPreferencesForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="flex items-center justify-center gap-2 self-start rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="primary-action self-start"
       >
         {trimmed === "" ? "Skip for now" : submitLabel}
         <ArrowRight size={15} />

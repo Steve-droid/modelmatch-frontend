@@ -202,6 +202,12 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
   const errors: string[] = [];
   const bad = (msg: string) => errors.push(msg);
 
+  // Pin the mock API origin even when the reused dev server points at an isolated BE.
+  await page.route("**/config.js", (route) => route.fulfill({
+    contentType: "application/javascript",
+    body: 'window.__APP_CONFIG__ = { apiBaseUrl: "http://localhost:8000" };',
+  }));
+
   await page.route(API_ORIGIN, async (route) => {
     const req = route.request();
     const method = req.method();

@@ -18,7 +18,7 @@ export function ProjectSwitcher({
 
   if (projects.length === 1) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted">
+      <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-xs font-medium text-muted">
         <FolderGit2 size={13} className="text-faint" />
         {active?.name ?? `CI-Agent #${value}`}
       </span>
@@ -26,7 +26,7 @@ export function ProjectSwitcher({
   }
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]">
       <FolderGit2
         size={13}
         className="pointer-events-none absolute left-2.5 text-faint"
@@ -35,7 +35,7 @@ export function ProjectSwitcher({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label="Select CI-Agent"
-        className="appearance-none rounded border border-border bg-panel py-1 pl-7 pr-7 text-xs font-medium text-fg focus:border-accent focus:outline-none"
+        className="max-w-full truncate appearance-none rounded-lg border border-border bg-panel py-2 pl-8 pr-8 text-xs font-medium text-fg focus:border-accent focus:outline-none"
       >
         {projects.map((p) => (
           <option key={p.id} value={p.id}>

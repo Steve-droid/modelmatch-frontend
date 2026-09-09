@@ -99,11 +99,11 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   // --- sign in through the UI ---
   await page.goto("/");
   await page.getByLabel("Email").fill(CREDS.email);
-  await page.getByLabel("Password").fill(CREDS.password);
+  await page.getByLabel("Password", { exact: true }).fill(CREDS.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
   // --- home → create a CI-Agent ---
-  await page.getByRole("button", { name: "Create a new CI-Agent" }).click();
+  await page.getByRole("button", { name: "Set up a CI agent" }).first().click();
   await expect(page.getByText("Set up your CI agent")).toBeVisible();
 
   // --- recommend (ci_review, High). Seeding was preflighted → this MUST appear now. ---

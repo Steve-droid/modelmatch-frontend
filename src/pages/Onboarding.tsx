@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, House } from "lucide-react";
 import markUrl from "../assets/brand/modelmatch-mark.svg";
 import type { RecommendationResult } from "../types/recommend";
 import {
@@ -141,9 +141,9 @@ export function Onboarding({
   }
 
   return (
-    <div className="min-h-full">
-      <header className="sticky top-0 z-10 border-b border-border bg-canvas/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3.5 sm:px-6">
+    <div className="workspace-page min-h-full">
+      <header className="workspace-header sticky top-0 z-10 border-b border-border">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={onHome}
@@ -151,26 +151,31 @@ export function Onboarding({
               aria-label="Home"
               className="flex items-center gap-3 rounded-md transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-panel">
                 <img src={markUrl} alt="ModelMatch" className="h-4 w-4" />
               </span>
               <span className="font-semibold tracking-tight">ModelMatch</span>
             </button>
-            <span className="text-xs text-faint">New CI-Agent</span>
+            <span className="hidden text-xs text-muted sm:inline">Agent setup</span>
           </div>
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-gray-100"
-            >
-              <ArrowLeft size={13} />
-              Back to dashboard
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {onHome && (
+              <button type="button" onClick={onHome} className="compact-action">
+                <House size={13} />
+                Back to home
+              </button>
+            )}
+            {onCancel && (
+              <button type="button" onClick={onCancel} className="compact-action">
+                <ArrowLeft size={13} />
+                Back to dashboard
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
         <Stepper
           steps={steps}
           activeIndex={activeIndex}
@@ -246,7 +251,7 @@ function Stepper({
   onStep: (step: Step) => void;
 }) {
   return (
-    <ol className="flex items-center gap-2 text-sm">
+    <ol className="flex flex-wrap items-center gap-2 text-sm">
       {steps.map((s, i) => {
         const done = i < activeIndex;
         const active = i === activeIndex;
@@ -266,17 +271,17 @@ function Stepper({
                     ? undefined
                     : `${s.label} unlocks once you finish the previous step`
               }
-              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-medium transition-colors ${
+              className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-colors sm:text-sm ${
                 active
                   ? "border-accent/50 bg-accent/15 text-gray-100"
                   : done
-                    ? "border-banked/40 bg-banked/10 text-banked hover:border-banked"
+                    ? "border-transparent bg-transparent text-banked hover:border-banked/30"
                     : reachable[s.key]
-                      ? "border-border bg-panel-2 text-muted hover:text-gray-100"
-                      : "cursor-not-allowed border-border bg-panel-2 text-faint"
+                      ? "border-transparent bg-transparent text-muted hover:bg-panel hover:text-gray-100"
+                      : "cursor-not-allowed border-transparent bg-transparent text-muted"
               }`}
             >
-              <span className="num">{done ? <Check size={13} /> : i + 1}</span>
+              <span className={`num flex h-6 w-6 items-center justify-center rounded-full ${active ? "bg-accent text-white" : "border border-border"}`}>{done ? <Check size={13} /> : i + 1}</span>
               {s.label}
             </button>
             {i < steps.length - 1 && (

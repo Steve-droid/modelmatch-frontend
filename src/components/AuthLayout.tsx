@@ -1,0 +1,41 @@
+import type { ReactNode } from "react";
+import { ArrowUpRight, GitPullRequest } from "lucide-react";
+import { ModelNamesBackdrop } from "./home/ModelNamesBackdrop";
+import markUrl from "../assets/brand/modelmatch-mark.svg";
+
+/** Shared canvas keeps sign-in, registration, and the session probe visually continuous. */
+export function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="auth-layout">
+      <div className="auth-story">
+        <div aria-hidden className="auth-glow" />
+        <div className="relative z-10 flex items-center gap-3 text-lg font-semibold tracking-tight">
+          <img src={markUrl} alt="" className="h-8 w-8" />
+          ModelMatch
+        </div>
+        <ModelNamesBackdrop position="above" />
+        <div className="auth-message relative z-10">
+          <span className="eyebrow"><GitPullRequest size={15} /> Smarter models. Leaner CI.</span>
+          <p className="mt-7 text-balance text-4xl font-semibold leading-[1.12] tracking-[-0.045em] text-gray-50 lg:text-6xl">
+            Great reviews.<br />{" "}
+            <span className="text-signal">Less spend.</span>
+          </p>
+          <p className="mt-6 max-w-sm text-base leading-relaxed text-muted">
+            Find a model for your CI, put it to work, and see the savings backed by quality.
+          </p>
+          <div className="mt-10 flex items-center gap-3 text-xs text-muted">
+            <span className="h-px w-8 bg-signal/60" />
+            Your pipeline. Your API key. Your control.
+          </div>
+        </div>
+        <ModelNamesBackdrop position="below" />
+        <div className="relative z-10 hidden items-center gap-2 text-xs text-muted md:flex">
+          Built for your next pull request <ArrowUpRight size={14} />
+        </div>
+      </div>
+      <div className="auth-form-panel">
+        <div className="w-full max-w-sm">{children}</div>
+      </div>
+    </div>
+  );
+}
