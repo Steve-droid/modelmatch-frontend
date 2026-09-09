@@ -5,6 +5,7 @@ import { ApiError, setToken } from "../api/client";
 import { AuthLayout } from "../components/AuthLayout";
 import { GoogleSignIn } from "../components/GoogleSignIn";
 import { PasswordField } from "../components/PasswordField";
+import { DemoNotice } from "../components/DemoNotice";
 
 // Sign-up screen. Creates the account, then logs in to obtain a JWT (register itself
 // returns the new user, not a token) and hands off to the app — same auto-land as Login.
@@ -51,7 +52,9 @@ export function Register({
       // sign-up failed; reassure the user and point them at sign-in.
       if (registered) {
         setRegisteredNeedsLogin(true);
-      } else if (err instanceof ApiError && err.status === 409)
+      } else if (err instanceof ApiError && err.code === "registration_capacity_reached")
+        setError(err.message);
+      else if (err instanceof ApiError && err.status === 409)
         setError("That email is already registered. Try signing in instead.");
       else if (err instanceof ApiError && err.status === 422)
         setError("Please enter a valid email and password.");
@@ -70,6 +73,7 @@ export function Register({
           <p className="mt-3 text-sm leading-relaxed text-muted">Your next CI agent starts here.</p>
         </div>
 
+        <DemoNotice />
         <GoogleSignIn onAuthed={onAuthed} />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">

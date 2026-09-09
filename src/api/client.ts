@@ -23,6 +23,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -35,6 +36,7 @@ export class ApiError extends Error {
 // 401) is used as-is.
 async function toApiError(res: Response): Promise<ApiError> {
   let detail = res.statusText;
+  let code: string | undefined;
   try {
     const body = await res.json();
     if (Array.isArray(body?.detail)) {
@@ -43,13 +45,16 @@ async function toApiError(res: Response): Promise<ApiError> {
         .filter(Boolean)
         .join("; ");
       if (msg) detail = msg;
-    } else if (body?.detail) {
+    } else if (typeof body?.detail === "object" && body.detail !== null) {
+      if (typeof body.detail.message === "string") detail = body.detail.message;
+      if (typeof body.detail.code === "string") code = body.detail.code;
+    } else if (typeof body?.detail === "string") {
       detail = body.detail;
     }
   } catch {
     /* non-JSON error body — keep the status text */
   }
-  return new ApiError(res.status, detail);
+  return new ApiError(res.status, detail, code);
 }
 
 function authHeaders(): Record<string, string> {

@@ -6,6 +6,7 @@ import type { Project } from "../types/project";
 import { getSavings } from "../api/savings";
 import { listProjects } from "../api/projects";
 import { ApiError } from "../api/client";
+import { getMe } from "../api/auth";
 import { ProjectActions } from "../components/ProjectActions";
 import {
   formatPct,
@@ -57,6 +58,27 @@ export function Dashboard({
   const [refreshNonce, setRefreshNonce] = useState(0);
 
   const handleUnauthorized = useCallback(() => onUnauthorized?.(), [onUnauthorized]);
+  const [chatEnabled, setChatEnabled] = useState(false);
+  const handleChatForbidden = useCallback(() => setChatEnabled(false), []);
+
+  useEffect(() => {
+    let active = true;
+    let generation = 0;
+    const refreshCapabilities = async () => {
+      const request = ++generation;
+      try {
+        const user = await getMe();
+        if (active && request === generation) setChatEnabled(user.chatEnabled === true);
+      } catch (e) {
+        if (active && request === generation && e instanceof ApiError && e.status === 401) handleUnauthorized();
+      }
+    };
+    const onFocus = () => { setChatEnabled(false); void refreshCapabilities(); };
+    // Initial state is denied; focus refreshes also hide chat until confirmed.
+    void refreshCapabilities();
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; window.removeEventListener("focus", onFocus); };
+  }, [handleUnauthorized]);
 
   // Load the user's projects + (re)select the active one. Keeps the current selection
   // if it still exists (after an edit); otherwise prefers a just-created project, then a
@@ -186,7 +208,7 @@ export function Dashboard({
         )}
 
         {projectId != null && (
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className={`grid grid-cols-1 gap-5 ${chatEnabled ? "xl:grid-cols-[minmax(0,1fr)_380px]" : ""}`}>
             {/* left: savings dashboard */}
             <div className="flex flex-col gap-5">
               {error && (
@@ -342,9 +364,9 @@ export function Dashboard({
             </div>
 
             {/* right: grounded chat panel (stacks under the dashboard below xl) */}
-            <div className="h-[560px] xl:sticky xl:top-[4.75rem] xl:h-[calc(100vh-6rem)]">
-              <ChatPanel projectId={projectId} onUnauthorized={handleUnauthorized} />
-            </div>
+            {chatEnabled && <div className="h-[560px] xl:sticky xl:top-[4.75rem] xl:h-[calc(100vh-6rem)]">
+              <ChatPanel projectId={projectId} onUnauthorized={handleUnauthorized} onForbidden={handleChatForbidden} />
+            </div>}
           </div>
         )}
       </main>

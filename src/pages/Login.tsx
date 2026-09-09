@@ -5,6 +5,7 @@ import { ApiError, setToken } from "../api/client";
 import { AuthLayout } from "../components/AuthLayout";
 import { GoogleSignIn } from "../components/GoogleSignIn";
 import { PasswordField } from "../components/PasswordField";
+import { DemoNotice } from "../components/DemoNotice";
 
 // Exchange credentials for a JWT, then open the home hub. Authentication forms
 // share a responsive branded canvas; API/error behavior stays local to each form.
@@ -49,6 +50,7 @@ export function Login({
           <p className="mt-3 text-sm leading-relaxed text-muted">Sign in to your Modicum workspace.</p>
         </div>
 
+        <DemoNotice />
         <GoogleSignIn onAuthed={onAuthed} />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">

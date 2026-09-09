@@ -25,7 +25,7 @@ function fill(email: string, password: string, confirm = password) {
 
 describe("Register", () => {
   it("registers, auto-logs-in, stores the token and signals onAuthed on success", async () => {
-    vi.mocked(register).mockResolvedValue({ id: 7, email: "steve@example.com" });
+    vi.mocked(register).mockResolvedValue({ id: 7, email: "steve@example.com" , chatEnabled: false });
     vi.mocked(login).mockResolvedValue({ accessToken: "jwt-123", tokenType: "bearer" });
     const onAuthed = vi.fn();
     render(<Register onAuthed={onAuthed} onSignIn={vi.fn()} />);
@@ -75,7 +75,7 @@ describe("Register", () => {
   });
 
   it("reassures (account created) when register succeeds but the auto-login fails", async () => {
-    vi.mocked(register).mockResolvedValue({ id: 9, email: "new@example.com" });
+    vi.mocked(register).mockResolvedValue({ id: 9, email: "new@example.com" , chatEnabled: false });
     vi.mocked(login).mockRejectedValue(new ApiError(401, "Invalid email or password"));
     const onAuthed = vi.fn();
     const onSignIn = vi.fn();
