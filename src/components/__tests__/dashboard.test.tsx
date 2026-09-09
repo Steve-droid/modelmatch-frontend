@@ -12,7 +12,10 @@ import {
   overspendSeriesPoint,
   projectsFixture,
   chatHistoryFixture,
+  securitySavingsFixture,
+  baselinePickSavingsFixture,
 } from "../../test/fixtures";
+import { runtimeHintFromProjectModel } from "../onboarding/jenkinsRuntime";
 
 // getRunFindings + submitFeedback are called from RunsTable; stub so imports resolve.
 vi.mock("../../api/savings", () => ({
@@ -112,6 +115,64 @@ describe("RunsTable", () => {
     expect(cell.className).toContain("text-risk");
     expect(cell.className).not.toContain("text-banked");
   });
+
+  it("shows the agent's gate per run, and no CWE column on a review project (E20)", () => {
+    render(<RunsTable projectId={1} runs={savingsFixture.runs} />);
+    expect(screen.getByRole("columnheader", { name: "Gate" })).toBeInTheDocument();
+    expect(screen.getAllByText("Pass")).toHaveLength(3);
+    expect(screen.queryByRole("columnheader", { name: "CWE" })).not.toBeInTheDocument();
+  });
+
+  it("shows a failed gate in red and the run's CWE ids on a security project (E20)", () => {
+    render(<RunsTable projectId={3} runs={securitySavingsFixture.runs} />);
+    const fail = screen.getByText("Fail");
+    expect(fail.className).toContain("text-risk");
+    expect(screen.getByRole("columnheader", { name: "CWE" })).toBeInTheDocument();
+    expect(screen.getByText("CWE-1336")).toBeInTheDocument();
+    expect(screen.getByText("CWE-79")).toBeInTheDocument();
+    expect(screen.getByText("CWE-798")).toBeInTheDocument();
+  });
+
+  it("shows a finding's CWE in the drill-in (E20)", async () => {
+    vi.mocked(getRunFindings).mockResolvedValueOnce({
+      runId: 114,
+      findings: [
+        {
+          id: 9,
+          severity: "critical",
+          category: "security",
+          file: "app.py",
+          line: 41,
+          message: "Jinja2 template rendered from user input",
+          cwe: "CWE-1336: Server-Side Template Injection",
+          verdict: null,
+        },
+      ],
+    });
+    render(<RunsTable projectId={3} runs={securitySavingsFixture.runs} />);
+    fireEvent.click(screen.getByText("sec-114"));
+    expect(await screen.findByText(/Jinja2 template rendered/)).toBeInTheDocument();
+    // the row chip AND the drill-in chip both read CWE-1336 (full title on hover)
+    const chips = screen.getAllByText("CWE-1336");
+    expect(chips.length).toBeGreaterThanOrEqual(2);
+    expect(chips.some((c) => c.getAttribute("title") === "CWE-1336: Server-Side Template Injection")).toBe(true);
+  });
+});
+
+describe("jenkinsRuntime hint — the security task's vendors (E20)", () => {
+  it("names DEEPSEEK_API_KEY / OPENAI_API_KEY for the OpenCode-only vendors", () => {
+    expect(runtimeHintFromProjectModel("DeepSeek V4 Flash")).toMatchObject({
+      authMode: "api_key",
+      credentialEnvVar: "DEEPSEEK_API_KEY",
+      providerLabel: "DeepSeek",
+    });
+    expect(runtimeHintFromProjectModel("GPT-5.5")).toMatchObject({
+      authMode: "api_key",
+      credentialEnvVar: "OPENAI_API_KEY",
+      providerLabel: "OpenAI",
+    });
+    expect(runtimeHintFromProjectModel("Claude Opus 5")?.credentialEnvVar).toBe("ANTHROPIC_API_KEY");
+  });
 });
 
 describe("RunsTable — rating a finding (S17b)", () => {
@@ -126,6 +187,7 @@ describe("RunsTable — rating a finding (S17b)", () => {
           file: "Jenkinsfile",
           line: 12,
           message: "hardcoded internal IP",
+          cwe: null,
           verdict: null,
         },
       ],
@@ -166,6 +228,7 @@ describe("RunsTable — rating a finding (S17b)", () => {
           file: "src/app.py",
           line: 3,
           message: "noise",
+          cwe: null,
           verdict: null,
         },
       ],
@@ -183,6 +246,32 @@ describe("RunsTable — rating a finding (S17b)", () => {
     expect(await screen.findByText(/couldn’t save/i)).toBeInTheDocument();
     expect(reject).toHaveAttribute("aria-pressed", "false"); // unchanged
     expect(onRated).not.toHaveBeenCalled();
+  });
+});
+
+describe("Dashboard (E20: task label, baseline pick)", () => {
+  it("names the task under the CI-runs stat", async () => {
+    vi.mocked(getSavings).mockResolvedValue(securitySavingsFixture);
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
+    const { Dashboard } = await import("../../pages/Dashboard");
+    render(<Dashboard />);
+    expect(await screen.findByText(/Security analysis · DeepSeek V4 Flash/)).toBeInTheDocument();
+  });
+
+  it("shows raw stats and no 'saved' figure when the pick IS the baseline", async () => {
+    vi.mocked(getSavings).mockResolvedValue(baselinePickSavingsFixture);
+    vi.mocked(listProjects).mockResolvedValue(projectsFixture);
+    vi.mocked(getChatHistory).mockResolvedValue(chatHistoryFixture);
+    const { Dashboard } = await import("../../pages/Dashboard");
+    render(<Dashboard />);
+    expect(await screen.findByText("Running the baseline")).toBeInTheDocument();
+    expect(screen.queryByText("Cumulative saved")).not.toBeInTheDocument();
+    expect(screen.queryByText(/vs baseline/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/costed, not run/)).not.toBeInTheDocument();
+    // the raw stats are still there
+    expect(screen.getByText("Spend this period")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "CI runs" })).toBeInTheDocument();
   });
 });
 

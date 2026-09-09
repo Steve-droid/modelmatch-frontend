@@ -10,6 +10,11 @@ export interface Project {
   baselineModelId: number;
   baselineModel: string;
   baselineVendor: string;
+  // E20: the ONE task this project's agent runs (catalog vocabulary: "ci_review" |
+  // "security_analysis") + the review preferences the review agent appends to its
+  // prompt (null when none; ignored for security projects).
+  taskType: string;
+  reviewPreferences: string | null;
   // Fully onboarded = a Jenkins connection exists AND its CI ingest token was minted.
   // false → the dashboard badges the project "setup incomplete" with an edit path.
   setupComplete: boolean;

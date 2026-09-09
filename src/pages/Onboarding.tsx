@@ -12,17 +12,30 @@ import { RecommenderForm } from "../components/onboarding/RecommenderForm";
 import { RecommendationView } from "../components/onboarding/RecommendationView";
 import { JenkinsConnectForm } from "../components/onboarding/JenkinsConnectForm";
 import { CiSetupView } from "../components/onboarding/CiSetupView";
+import { ReviewPreferencesForm } from "../components/onboarding/ReviewPreferencesForm";
 import { runtimeHintFromRecommendationOption } from "../components/onboarding/jenkinsRuntime";
 
-type Step = "recommend" | "jenkins" | "cisetup";
+type Step = "recommend" | "preferences" | "jenkins" | "cisetup";
 // Labels name what the USER does at each step, not what the system does — "Recommend"
 // read as an instruction to the user, who is the one being recommended TO. The `key`
 // stays "recommend" because it is internal routing, not copy.
-const STEPS: { key: Step; label: string }[] = [
+//
+// E20: the review task has one extra step (review preferences) after the pick; a
+// security project goes straight from the pick to Jenkins — preferences only shape
+// the review prompt, and the API returns null for a security project anyway.
+const ALL_STEPS: { key: Step; label: string }[] = [
   { key: "recommend", label: "Pick model" },
+  { key: "preferences", label: "Review preferences" },
   { key: "jenkins", label: "Connect Jenkins" },
   { key: "cisetup", label: "CI setup" },
 ];
+const REVIEW_TASK = "ci_review";
+
+function stepsFor(taskType: string): { key: Step; label: string }[] {
+  return taskType === REVIEW_TASK
+    ? ALL_STEPS
+    : ALL_STEPS.filter((s) => s.key !== "preferences");
+}
 
 // The new-project onboarding flow: recommend → pick → connect Jenkins → CI snippet →
 // dashboard. DEFER-CREATE: the project is NOT created at the pick step — the pick is
@@ -44,19 +57,27 @@ export function Onboarding({
 }) {
   const [step, setStep] = useState<Step>("recommend");
   const [result, setResult] = useState<RecommendationResult | null>(null);
+  // The task the recommendation was ranked on — the project is created WITH it (the
+  // backend rejects a pick/task mismatch), and it decides whether the preferences
+  // step exists. Defaults to review, the recommender form's default task.
+  const [taskType, setTaskType] = useState<string>(REVIEW_TASK);
   const [draft, setDraft] = useState<CreateProjectInput | null>(null);
+  const [reviewPreferences, setReviewPreferences] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
   // What the user typed at the Jenkins step, so stepping back and forward again
   // doesn't hand them empty fields.
   const [jenkins, setJenkins] = useState({ baseUrl: "", jobName: "" });
 
-  const activeIndex = STEPS.findIndex((s) => s.key === step);
+  const steps = stepsFor(taskType);
+  const activeIndex = steps.findIndex((s) => s.key === step);
 
   // A step is reachable once the work it depends on exists: the pick unlocks the
-  // Jenkins step, and creating + connecting the project unlocks CI setup. This is what
-  // makes the stepper navigable in BOTH directions instead of a one-way road.
+  // preferences (review) / Jenkins step, and creating + connecting the project
+  // unlocks CI setup. This is what makes the stepper navigable in BOTH directions
+  // instead of a one-way road.
   const reachable: Record<Step, boolean> = {
     recommend: true,
+    preferences: draft != null,
     jenkins: draft != null,
     cisetup: projectId != null,
   };
@@ -72,7 +93,11 @@ export function Onboarding({
   async function handleConnect(input: { baseUrl: string; jobName: string }) {
     let pid = projectId;
     if (pid == null) {
-      const project = await createProject(draft!);
+      const project = await createProject({
+        ...draft!,
+        taskType,
+        reviewPreferences: taskType === REVIEW_TASK ? reviewPreferences : null,
+      });
       pid = project.id;
       setProjectId(pid);
     }
@@ -94,7 +119,25 @@ export function Onboarding({
         baselineModelId: pick.baselineModelId,
       });
     }
+    setStep(taskType === REVIEW_TASK ? "preferences" : "jenkins");
+  }
+
+  // The preferences step's submit (review task only). Before the project exists this
+  // just stashes the text (defer-create, same as the pick); once it exists, a PATCH
+  // persists the change so the agent's next run sees it.
+  async function handlePreferences(prefs: string | null) {
+    setReviewPreferences(prefs);
+    if (projectId != null) {
+      await updateProject(projectId, { reviewPreferences: prefs });
+    }
     setStep("jenkins");
+  }
+
+  // A fresh recommendation (possibly on the other task) resets the task-bound state.
+  function handleResult(r: RecommendationResult, task: string) {
+    setResult(r);
+    setTaskType(task);
+    if (task !== REVIEW_TASK) setReviewPreferences(null);
   }
 
   return (
@@ -129,6 +172,7 @@ export function Onboarding({
 
       <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
         <Stepper
+          steps={steps}
           activeIndex={activeIndex}
           reachable={reachable}
           onStep={setStep}
@@ -136,7 +180,7 @@ export function Onboarding({
 
         {step === "recommend" &&
           (result === null ? (
-            <RecommenderForm onResult={setResult} onUnauthorized={onUnauthorized} />
+            <RecommenderForm onResult={handleResult} onUnauthorized={onUnauthorized} />
           ) : (
             <div className="flex flex-col gap-3">
               <button
@@ -156,6 +200,14 @@ export function Onboarding({
               />
             </div>
           ))}
+
+        {step === "preferences" && draft != null && (
+          <ReviewPreferencesForm
+            key={projectId ?? "draft"}
+            initialValue={reviewPreferences ?? ""}
+            onSubmit={handlePreferences}
+          />
+        )}
 
         {step === "jenkins" && draft != null && (
           <JenkinsConnectForm
@@ -183,17 +235,19 @@ export function Onboarding({
 // already unlocked can be clicked, in either direction. Steps that aren't reachable
 // yet stay disabled so nobody lands on a screen with nothing behind it.
 function Stepper({
+  steps,
   activeIndex,
   reachable,
   onStep,
 }: {
+  steps: { key: Step; label: string }[];
   activeIndex: number;
   reachable: Record<Step, boolean>;
   onStep: (step: Step) => void;
 }) {
   return (
     <ol className="flex items-center gap-2 text-sm">
-      {STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         const done = i < activeIndex;
         const active = i === activeIndex;
         const canGo = reachable[s.key] && !active;
@@ -225,7 +279,7 @@ function Stepper({
               <span className="num">{done ? <Check size={13} /> : i + 1}</span>
               {s.label}
             </button>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <span className={`h-px w-4 ${done ? "bg-banked/40" : "bg-border"}`} />
             )}
           </li>

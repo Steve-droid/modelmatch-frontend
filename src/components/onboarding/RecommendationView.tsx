@@ -63,6 +63,12 @@ export function RecommendationView({
   const [error, setError] = useState<string | null>(null);
 
   const canCreate = name.trim() !== "" && selectedId != null && !creating;
+  // The shortlist may contain the baseline itself (it is a scored, runnable row).
+  // Picking it means there is nothing to measure savings against, so the "costed
+  // against" line is dropped rather than promising a comparison that cannot exist.
+  const pickIsBaseline =
+    selectable.find((o) => o.recommendationOptionId === selectedId)?.modelId ===
+    baseline.modelId;
 
   async function handleCreate() {
     if (!canCreate) return;
@@ -120,16 +126,18 @@ export function RecommendationView({
         </div>
       )}
 
-      {/* baseline */}
-      <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm">
-        <span className="font-medium text-muted">Baseline (costed, not run): </span>
-        <span className="text-gray-200">{baseline.model}</span>
-        <span className="text-faint"> · {baseline.vendor} · </span>
-        <span className="num text-signal">{perMtok(baseline.costPerMtok)}</span>
-        <span className="text-faint">
-          , the expensive default your savings are measured against.
-        </span>
-      </div>
+      {/* baseline — hidden when the pick IS the baseline (nothing to compare against) */}
+      {!pickIsBaseline && (
+        <div className="rounded-md border border-border bg-panel-2 px-3 py-2.5 text-sm">
+          <span className="font-medium text-muted">Baseline (costed, not run): </span>
+          <span className="text-gray-200">{baseline.model}</span>
+          <span className="text-faint"> · {baseline.vendor} · </span>
+          <span className="num text-signal">{perMtok(baseline.costPerMtok)}</span>
+          <span className="text-faint">
+            , the expensive default your savings are measured against.
+          </span>
+        </div>
+      )}
 
       {/* name + create */}
       <div className="flex flex-col gap-2 border-t border-border pt-4">

@@ -13,6 +13,7 @@ import {
   toNumber,
 } from "../lib/format";
 import { KpiCard, SavingsHero } from "../components/KpiCard";
+import { taskLabelOf } from "../lib/task";
 import { StatusBadge } from "../components/StatusBadge";
 import { SavingsAreaChart } from "../components/SavingsAreaChart";
 import { CostPerRunBar } from "../components/CostPerRunBar";
@@ -128,6 +129,15 @@ export function Dashboard({
   const k = data?.kpis;
   const noProjects = projects !== null && projects.length === 0;
   const activeProject = projects?.find((p) => p.id === projectId) ?? null;
+  // E20: when the pick IS the baseline there is nothing to save against — the savings
+  // hero and the actual-vs-baseline chart would show a $0 gap between a model and
+  // itself. Show the raw stats instead (Steve, 2026-09-08).
+  const pickIsBaseline =
+    data != null &&
+    data.selectedModel != null &&
+    data.baselineModel != null &&
+    data.selectedModel === data.baselineModel;
+  const taskLabel = taskLabelOf(data?.taskType ?? activeProject?.taskType);
 
   // After an edit/re-pick: reload the project list (names/setup status) and refetch
   // savings (model/baseline may have changed).
@@ -165,7 +175,7 @@ export function Dashboard({
         onUnauthorized={handleUnauthorized}
         range={range}
         onRange={setRange}
-        status={k?.qualityStatus}
+        status={pickIsBaseline ? undefined : k?.qualityStatus}
       />
 
       <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
@@ -189,7 +199,53 @@ export function Dashboard({
                 <p className="text-sm text-muted">Loading savings…</p>
               )}
 
-              {data && k && (
+              {data && k && pickIsBaseline && (
+                <>
+                  {/* the pick is the baseline: raw stats only, no "saved" figure */}
+                  <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <KpiCard
+                      label="Running the baseline"
+                      value={data.selectedModel ?? "—"}
+                      sub="nothing to compare against — no savings to bank"
+                    />
+                    <KpiCard
+                      label="Spend this period"
+                      value={formatUSD(k.spendThisPeriod)}
+                      sub={
+                        k.projectedMonthlySpend != null
+                          ? `~${formatUSD(k.projectedMonthlySpend)}/mo projected`
+                          : "projection needs more history"
+                      }
+                    />
+                    <KpiCard
+                      label="Quality"
+                      value={formatPctFromRate(k.acceptanceRate)}
+                      accent={
+                        k.qualityStatus === "banking"
+                          ? "text-banked"
+                          : k.qualityStatus === "quality_risk"
+                            ? "text-risk"
+                            : "text-unrated"
+                      }
+                      sub={`acceptance · threshold ${formatPctFromRate(k.threshold)}`}
+                    />
+                    <KpiCard label="CI runs" value={String(k.runsCount)} sub={taskLabel} />
+                  </section>
+
+                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <CostPerRunBar series={data.series} />
+                    <QualityTrend series={data.series} threshold={k.threshold} />
+                  </section>
+
+                  <RunsTable
+                    projectId={projectId}
+                    runs={data.runs}
+                    onRated={handleRated}
+                  />
+                </>
+              )}
+
+              {data && k && !pickIsBaseline && (
                 <>
                   {/* KPI: the savings hero + a compact stat strip (F2) */}
                   <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(26rem,1fr)_minmax(0,1.6fr)]">
@@ -261,7 +317,7 @@ export function Dashboard({
                       <KpiCard
                         label="CI runs"
                         value={String(k.runsCount)}
-                        sub={data.selectedModel ?? "—"}
+                        sub={`${taskLabel} · ${data.selectedModel ?? "—"}`}
                       />
                     </div>
                   </section>

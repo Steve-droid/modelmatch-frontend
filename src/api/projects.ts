@@ -13,6 +13,10 @@ export interface CreateProjectInput {
   name: string;
   selectedOptionId: number;
   baselineModelId: number;
+  // E20: the task the pick was ranked on (the backend 422s a mismatch) + optional
+  // review preferences (review task only; null = none).
+  taskType?: string;
+  reviewPreferences?: string | null;
 }
 
 export function createProject(input: CreateProjectInput): Promise<Project> {
@@ -25,6 +29,8 @@ export interface UpdateProjectInput {
   name?: string;
   selectedOptionId?: number;
   baselineModelId?: number;
+  taskType?: string;
+  reviewPreferences?: string | null; // explicit null clears them
 }
 
 export function updateProject(

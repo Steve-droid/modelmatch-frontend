@@ -5,8 +5,11 @@ import { getRunFindings, submitFeedback } from "../api/savings";
 import { formatDateTime, formatTokens, formatUSD, toNumber } from "../lib/format";
 import { QualityPill } from "./StatusBadge";
 
-// Runs table (build · date · model · tokens · actual · baseline · savings · quality ·
-// #findings). Click a row to drill into that run's findings (Fork 4 endpoint). Each
+// Runs table (build · date · model · tokens · actual · baseline · savings · gate ·
+// quality · CWE · #findings). Click a row to drill into that run's findings (Fork 4
+// endpoint). The gate is the agent's own pass/fail decision, recorded at ingest (it
+// acted in CI); quality is the human accept/reject signal — two different things, both
+// shown. The CWE column appears only when a run carries one (the security task). Each
 // finding carries an accept/reject control (S17b): rating it recomputes the run's
 // quality gate, which banks or excludes its savings — so `onRated` tells the dashboard
 // to refetch savings.
@@ -60,6 +63,9 @@ export function RunsTable({
 
   // newest first in the table (series stays chronological for the charts).
   const rows = [...runs].reverse();
+  // E20: security runs carry CWE ids; a review project would show an empty column.
+  const showCwe = rows.some((r) => (r.cwes ?? []).length > 0);
+  const colSpan = showCwe ? 11 : 10;
 
   return (
     <div className="card overflow-hidden p-0">
@@ -77,7 +83,9 @@ export function RunsTable({
               <th className="px-4 py-2 text-right font-medium">Actual</th>
               <th className="px-4 py-2 text-right font-medium">Baseline</th>
               <th className="px-4 py-2 text-right font-medium">Savings</th>
+              <th className="px-4 py-2 font-medium">Gate</th>
               <th className="px-4 py-2 font-medium">Quality</th>
+              {showCwe && <th className="px-4 py-2 font-medium">CWE</th>}
               <th className="px-4 py-2 text-right font-medium">Findings</th>
             </tr>
           </thead>
@@ -89,13 +97,15 @@ export function RunsTable({
                 open={openId === r.id}
                 loading={loading && openId === r.id}
                 findings={openId === r.id ? findings : []}
+                showCwe={showCwe}
+                colSpan={colSpan}
                 onToggle={() => toggle(r.id)}
                 onRate={rateFinding}
               />
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                <td colSpan={colSpan} className="px-4 py-8 text-center text-muted">
                   No CI runs yet. The dashboard fills in as the agent posts runs.
                 </td>
               </tr>
@@ -112,6 +122,8 @@ function FragmentRow({
   open,
   loading,
   findings,
+  showCwe,
+  colSpan,
   onToggle,
   onRate,
 }: {
@@ -119,6 +131,8 @@ function FragmentRow({
   open: boolean;
   loading: boolean;
   findings: FindingRow[];
+  showCwe: boolean;
+  colSpan: number;
   onToggle: () => void;
   onRate: (findingId: number, verdict: Verdict) => Promise<void>;
 }) {
@@ -155,15 +169,23 @@ function FragmentRow({
           {formatUSD(run.savings)}
         </td>
         <td className="px-4 py-2.5">
+          <GatePill gate={run.gate} />
+        </td>
+        <td className="px-4 py-2.5">
           <QualityPill qualityOk={run.qualityOk} />
         </td>
+        {showCwe && (
+          <td className="px-4 py-2.5 num text-xs text-muted">
+            {(run.cwes ?? []).length > 0 ? <CweList cwes={run.cwes} /> : "—"}
+          </td>
+        )}
         <td className="px-4 py-2.5 num text-right text-muted">
           {run.findingsCount}
         </td>
       </tr>
       {open && (
         <tr className="bg-canvas/60">
-          <td colSpan={9} className="px-4 py-3">
+          <td colSpan={colSpan} className="px-4 py-3">
             {loading ? (
               <p className="text-xs text-muted">Loading findings…</p>
             ) : findings.length === 0 ? (
@@ -218,6 +240,14 @@ function FindingItem({
         {finding.file ?? "—"}
         {finding.line != null ? `:${finding.line}` : ""}
       </span>
+      {finding.cwe && (
+        <span
+          className="num shrink-0 rounded border border-risk/40 bg-risk/10 px-1.5 py-0.5 text-[11px] text-risk"
+          title={finding.cwe}
+        >
+          {finding.cwe.split(":")[0]}
+        </span>
+      )}
       <span className="text-muted">{finding.message}</span>
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         {error && <span className="text-risk">couldn’t save</span>}
@@ -239,6 +269,42 @@ function FindingItem({
         />
       </div>
     </li>
+  );
+}
+
+// The agent's pass/fail decision on this run (its exit code in CI), recorded at ingest.
+// Distinct from quality: the gate is what CI did, quality is what the human said.
+function GatePill({ gate }: { gate: string | null }) {
+  if (gate === "pass")
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-banked">
+        <span className="h-1.5 w-1.5 rounded-full bg-banked" />
+        Pass
+      </span>
+    );
+  if (gate === "fail")
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk">
+        <span className="h-1.5 w-1.5 rounded-full bg-risk" />
+        Fail
+      </span>
+    );
+  return <span className="text-xs text-faint">—</span>;
+}
+
+// Up to three CWE ids inline, then "+n" — the drill-in lists every finding's full CWE.
+function CweList({ cwes }: { cwes: string[] }) {
+  const shown = cwes.slice(0, 3);
+  const more = cwes.length - shown.length;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {shown.map((c) => (
+        <span key={c} className="rounded border border-border bg-panel-2 px-1.5 py-0.5 text-fg">
+          {c}
+        </span>
+      ))}
+      {more > 0 && <span className="text-faint">+{more}</span>}
+    </span>
   );
 }
 
