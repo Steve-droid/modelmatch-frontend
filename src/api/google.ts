@@ -19,7 +19,7 @@ export interface GoogleIdentity {
     callback: (response: { credential: string }) => void;
   }) => void;
   renderButton: (element: HTMLElement, options: {
-    type: "standard"; theme: "outline"; size: "large"; text: "continue_with";
+    type: "standard"; theme: "outline"; size: "large"; text: "continue_with"; locale?: string;
   }) => void;
 }
 
@@ -35,7 +35,7 @@ export function loadGoogleIdentity(): Promise<GoogleIdentity> {
   if (loading) return loading;
   loading = new Promise<GoogleIdentity>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
+    script.src = "https://accounts.google.com/gsi/client?hl=en";
     script.async = true;
     const fail = () => {
       clearTimeout(timer);

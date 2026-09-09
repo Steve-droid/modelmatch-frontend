@@ -51,7 +51,7 @@ export function GoogleSignIn({ onAuthed }: { onAuthed: () => void }) {
           },
         });
         host.replaceChildren();
-        identity.renderButton(host, { type: "standard", theme: "outline", size: "large", text: "continue_with" });
+        identity.renderButton(host, { type: "standard", theme: "outline", size: "large", text: "continue_with", locale: "en" });
         // Refresh before the five-minute backend deadline when the form sits idle.
         refresh = setTimeout(() => setAttempt((n) => n + 1), 240000);
       } catch {
