@@ -32,9 +32,11 @@ function fromHistory(m: ChatMessage): UiMessage {
 export function ChatPanel({
   projectId,
   onUnauthorized,
+  onForbidden,
 }: {
   projectId: number;
   onUnauthorized?: () => void;
+  onForbidden?: () => void;
 }) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState("");
@@ -63,8 +65,10 @@ export function ChatPanel({
       .catch((e: unknown) => {
         if (!live) return;
         if (e instanceof ApiError && e.status === 401) onUnauthorized?.();
-        else if (e instanceof ApiError && e.status === 403)
+        else if (e instanceof ApiError && e.status === 403) {
+          onForbidden?.();
           setLoadError("You don't have access to this project's chat.");
+        }
         else if (e instanceof ApiError) setLoadError(e.message);
         else setLoadError("Could not reach the backend.");
       })
@@ -72,7 +76,7 @@ export function ChatPanel({
     return () => {
       live = false;
     };
-  }, [projectId, onUnauthorized]);
+  }, [projectId, onUnauthorized, onForbidden]);
 
   // Keep the latest message in view as the thread grows / while sending.
   useEffect(() => {
@@ -111,6 +115,7 @@ export function ChatPanel({
         return;
       }
       if (isStale()) return; // stale failure — don't surface it in the new conversation
+      if (e instanceof ApiError && e.status === 403) onForbidden?.();
       const notice =
         e instanceof ApiError && e.status === 429
           ? { text: "I've hit the model's hourly limit. Please try again shortly.", variant: "notice" as const }

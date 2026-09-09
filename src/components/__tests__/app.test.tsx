@@ -126,7 +126,7 @@ describe("App auth-view toggle", () => {
   it("Register's onAuthed runs the SAME authed → home/project-probe flow as Login", async () => {
     // register → auto-login resolves a token → onAuthed → the projects probe → home hub,
     // exactly like the Login path.
-    vi.mocked(register).mockResolvedValue({ id: 1, email: "new@example.com" });
+    vi.mocked(register).mockResolvedValue({ id: 1, email: "new@example.com" , chatEnabled: false });
     vi.mocked(login).mockResolvedValue({ accessToken: "jwt-reg", tokenType: "bearer" });
     vi.mocked(listProjects).mockResolvedValue(projectsFixture);
     render(<App />);

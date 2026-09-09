@@ -220,6 +220,10 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
       }
     };
 
+    // Existing chat acceptance flows use an explicitly privileged fixture.
+    if (path === "/auth/me" && method === "GET") {
+      return json(route, { id: 1, email: "operator@example.com", chatEnabled: true });
+    }
     // --- auth ---
     if (path === "/auth/google/config" && method === "GET") {
       return json(route, { enabled: false });

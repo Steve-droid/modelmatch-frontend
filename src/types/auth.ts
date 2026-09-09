@@ -10,4 +10,5 @@ export interface TokenResponse {
 export interface RegisterResponse {
   id: number;
   email: string;
+  chatEnabled: boolean;
 }
