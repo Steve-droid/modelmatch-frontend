@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { KpiCard } from "../KpiCard";
 import { QualityPill } from "../StatusBadge";
@@ -100,6 +100,36 @@ describe("QualityPill", () => {
 });
 
 describe("RunsTable", () => {
+  it.each([
+    [69376, "69,376"],
+    [0, "0"],
+    [null, "Not reported"],
+  ])("shows cache usage %s while findings load and when empty", async (cacheReadTokens, display) => {
+    let finish!: (value: { runId: number; findings: [] }) => void;
+    vi.mocked(getRunFindings).mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    const run = { ...savingsFixture.runs[0], cacheReadTokens, findingsCount: 0 };
+    render(<RunsTable projectId={1} runs={[run]} />);
+    const collapsedRow = screen.getByText("101").closest("tr")!;
+    const collapsedText = collapsedRow.textContent;
+    expect(screen.queryByText("Cache-read tokens")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("101"));
+
+    expect(screen.getByText("Loading findings…")).toBeInTheDocument();
+    expect(screen.getByText("Input tokens").parentElement).toHaveTextContent("1,200");
+    expect(screen.getByText("Output tokens").parentElement).toHaveTextContent("340");
+    expect(screen.getByText("Cache-read tokens").parentElement).toHaveTextContent(display);
+    expect(screen.getByText(
+      "Cache-read costs are not included in the displayed cost estimates.",
+    )).toBeInTheDocument();
+
+    await act(async () => { finish({ runId: run.id, findings: [] }); });
+    expect(screen.getByText("No findings on this run.")).toBeInTheDocument();
+    expect(screen.getByText("Cache-read tokens").parentElement).toHaveTextContent(display);
+    expect(collapsedRow.textContent).toBe(collapsedText); // money/gate/token total unchanged
+    fireEvent.click(screen.getByText("101"));
+    expect(screen.queryByText("Cache-read tokens")).not.toBeInTheDocument();
+  });
+
   it("shows every run, flagging the quality-risk one (never silently dropped)", () => {
     render(<RunsTable projectId={1} runs={savingsFixture.runs} />);
     expect(screen.getByText("101")).toBeInTheDocument();
@@ -152,6 +182,12 @@ describe("RunsTable", () => {
     render(<RunsTable projectId={3} runs={securitySavingsFixture.runs} />);
     fireEvent.click(screen.getByText("sec-114"));
     expect(await screen.findByText(/Jinja2 template rendered/)).toBeInTheDocument();
+    expect(screen.getByText("Cache-read tokens").parentElement).toHaveTextContent("69,376");
+    expect(screen.getByText("Input tokens").parentElement).toHaveTextContent("11,501");
+    expect(screen.getByText("Output tokens").parentElement).toHaveTextContent("2,618");
+    expect(screen.getByText(
+      "Cache-read costs are not included in the displayed cost estimates.",
+    )).toBeInTheDocument();
     // the row chip AND the drill-in chip both read CWE-1336 (full title on hover)
     const chips = screen.getAllByText("CWE-1336");
     expect(chips.length).toBeGreaterThanOrEqual(2);

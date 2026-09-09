@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mockBackend } from "./mock-backend";
+import { projectsFixture, securitySavingsFixture } from "../src/test/fixtures";
 
 // The S17 happy path: drive the REAL frontend end-to-end against a fully mocked backend
 // (route interception). Login → home hub → "Create a new CI-Agent" → recommend
@@ -146,3 +147,58 @@ test("home navigation: View my CI-Agents → dashboard, logo → home, browser B
 
   expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
 });
+
+// Real browser coverage for the usage drill-in, using only intercepted fixture responses.
+for (const width of [1440, 390]) {
+  test(`expanded cache usage at ${width}px, including zero and unreported`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    const mock = await mockBackend(page);
+    await page.route(/^https?:\/\/localhost:8000\/projects$/, (route) =>
+      route.fulfill({ json: [projectsFixture[0]] }),
+    );
+    const runs = [69376, 0, null].map((cacheReadTokens, i) => ({
+      ...securitySavingsFixture.runs[0],
+      id: 114 + i,
+      jenkinsBuildId: `cache-${i}`,
+      cacheReadTokens,
+      findingsCount: 0,
+      cwes: [],
+    }));
+    await page.route(/\/projects\/1\/savings(?:\?.*)?$/, (route) =>
+      route.fulfill({ json: { ...securitySavingsFixture, runs } }),
+    );
+    await page.route(/\/projects\/1\/runs\/\d+\/findings$/, (route) =>
+      route.fulfill({ json: { runId: Number(route.request().url().split("/").at(-2)), findings: [] } }),
+    );
+    await page.goto("/");
+    await signIn(page);
+    await page.getByRole("button", { name: /View my CI-Agents/ }).click();
+    for (const [index, expected] of ["69,376", "0", "Not reported"].entries()) {
+      const row = page.getByRole("row", { name: new RegExp(`cache-${index}`) });
+      const before = await row.innerText();
+      await row.getByText(`cache-${index}`, { exact: true }).click();
+      await expect(page.getByText("No findings on this run.")).toBeVisible();
+      const detail = page.getByRole("row").filter({ has: page.getByText("Cache-read tokens", { exact: true }) });
+      await expect(detail.locator("dl > div").filter({ hasText: "Cache-read tokens" })).toHaveText(`Cache-read tokens${expected}`);
+      await expect(detail.locator("dl > div").filter({ hasText: "Input tokens" })).toHaveText("Input tokens11,501");
+      await expect(detail.locator("dl > div").filter({ hasText: "Output tokens" })).toHaveText("Output tokens2,618");
+      const note = detail.getByText("Cache-read costs are not included in the displayed cost estimates.");
+      await expect(note).toBeVisible();
+      // The disclaimer must fit inside the visible scroll container, even on a phone.
+      const bounds = await note.evaluate((el) => {
+        const text = el.getBoundingClientRect();
+        const container = el.closest("table")!.parentElement!.getBoundingClientRect();
+        return { right: text.right, containerRight: container.right };
+      });
+      expect(bounds.right).toBeLessThanOrEqual(bounds.containerRight);
+      expect(await row.innerText()).toBe(before);
+      if (index === 0) {
+        await detail.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: testInfo.outputPath("cache-usage.png"), fullPage: true });
+      }
+      await row.getByText(`cache-${index}`, { exact: true }).click();
+      await expect(page.getByText("Cache-read tokens", { exact: true })).toBeHidden();
+    }
+    expect(mock.errors, mock.errors.join("\n")).toHaveLength(0);
+  });
+}

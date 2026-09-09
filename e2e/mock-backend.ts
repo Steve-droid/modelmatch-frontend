@@ -124,6 +124,7 @@ const SAVINGS = {
       model: "Nova 2 Lite",
       tokensIn: 1200,
       tokensOut: 340,
+      cacheReadTokens: null,
       actualCost: "0.010000",
       baselineCost: "0.030000",
       savings: "0.020000",

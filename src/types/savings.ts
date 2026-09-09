@@ -42,6 +42,7 @@ export interface SavingsRunRow {
   model: string | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  cacheReadTokens: number | null; // Separate, unpriced usage; null means not reported.
   actualCost: Money | null;
   baselineCost: Money | null;
   savings: Money | null;
