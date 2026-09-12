@@ -7,8 +7,7 @@ import { test, expect } from "@playwright/test";
 // `POST /ci-runs` ingest — then asserts the dashboard reflects the ingested run.
 //
 // It deliberately costs $0: the ci-run is a *mocked* agent result (deterministic
-// savings, no LLM), and it asserts only the server-seeded chat opener — it never asks a
-// live question (which would spend Bedrock tokens).
+// savings, no LLM), and it verifies ordinary-account chat restrictions without a live model call.
 //
 // SELF-SKIPS when http://localhost:8000 is unreachable or unseeded, so it's a no-op in
 // plain CI and only runs when a backend is already up. To run it fully:
@@ -116,13 +115,17 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   await page.getByLabel("Project name").fill(projectName);
   await page.getByRole("button", { name: "Continue" }).click();
 
+  // Review projects include an optional preferences step before Jenkins (E20).
+  await expect(page.getByRole("textbox", { name: "Review preferences" })).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+
   // --- Jenkins step → Continue creates the project + connects ---
   await page.getByLabel("Jenkins base URL").fill("https://jenkins.example.com");
   await page.getByLabel("Job name").fill(`${projectName}/main`);
   await page.getByRole("button", { name: "Continue" }).click();
 
   // --- CI setup: capture the mint-once token + the real ingest URL from the UI ---
-  await expect(page.getByText(/CI token — shown once/)).toBeVisible();
+  await expect(page.getByText(/CI token, shown once/)).toBeVisible();
   const token = (await page.locator("code.break-all").first().innerText()).trim();
   expect(token.length).toBeGreaterThan(0);
 
@@ -141,15 +144,17 @@ test("real backend: onboard a CI-Agent → ingest a real CI run → dashboard re
   });
   expect(ingest.ok(), `ci-run ingest -> ${ingest.status()}`).toBeTruthy();
 
-  // --- dashboard reflects the ingested run + the server-seeded chat opener ---
+  // --- dashboard reflects the ingested run for this ordinary account ---
   await page.getByRole("button", { name: "Go to dashboard" }).click();
   await expect(page.getByText("Cumulative saved")).toBeVisible();
   await expect(page.getByRole("heading", { name: "CI runs" })).toBeVisible();
-  await expect(page.getByText(new RegExp(`build ${buildId}`))).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: buildId })).toBeVisible();
 
-  const chat = page.getByRole("region", { name: "Grounded chat" });
-  await expect(chat.getByText(/Loading conversation/)).toHaveCount(0, { timeout: 7000 });
-  // opener is server-seeded (no LLM); assert a message bubble rendered, don't ask a
-  // live question (that would spend Bedrock tokens).
-  await expect(chat.getByText("Ask Modicum", { exact: true })).toBeVisible();
+  // P38o: new ordinary accounts have no chat access. Keep the production boundary.
+  await expect(page.getByRole("region", { name: "Grounded chat" })).toHaveCount(0);
+  const chatUrl = ciRunsUrl!.replace(/ci-runs$/, "chat");
+  const deniedChat = await request.get(chatUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  expect(deniedChat.status()).toBe(403);
 });

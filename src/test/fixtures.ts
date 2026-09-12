@@ -280,7 +280,7 @@ export const jenkinsConnectionFixture: JenkinsConnection = {
 
 // CI setup with the mint-once token present (first fetch) …
 export const ciSetupFixture: CiSetup = {
-  snippet: "stage('Modicum') {\n  steps { sh 'docker run modelmatch-agent' }\n}",
+  snippet: "stage('Driftplain') {\n  steps { sh 'docker run modelmatch-agent' }\n}",
   imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.2.0",
   ciRunsUrl: "http://localhost:8000/projects/7/ci-runs",
   token: "mmci_s3cr3t_one_time_value",
@@ -291,7 +291,7 @@ export const ciSetupFixture: CiSetup = {
 // E20: the security task's CI setup (the OpenCode image over a read-only checkout).
 export const ciSetupSecurityFixture: CiSetup = {
   ...ciSetupFixture,
-  snippet: "stage('Modicum Security Analysis') {\n  steps { sh 'docker run modelmatch-agent-security' }\n}",
+  snippet: "stage('Driftplain Security Analysis') {\n  steps { sh 'docker run modelmatch-agent-security' }\n}",
   imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent-security:1.1.0",
   taskType: "security_analysis",
   task: "security",

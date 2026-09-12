@@ -1,7 +1,7 @@
 import { BRAND_NAME } from "../lib/brand";
 import { useState } from "react";
 import { ArrowLeft, Check, House } from "lucide-react";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
+import markUrl from "../assets/brand/driftplain-mark.svg";
 import type { RecommendationResult } from "../types/recommend";
 import {
   createProject,

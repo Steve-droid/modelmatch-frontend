@@ -1,7 +1,7 @@
 // Steve's chosen headline is retained in the homepage hero.
 export const VALUE_PROP = {
   headline: "The right model for your CI, at the lowest cost.",
-  sub: "Modicum recommends a cost-effective model to review your pull requests in CI, then proves it's good enough by counting the savings against a premium baseline.",
+  sub: "Driftplain recommends a cost-effective model to review your pull requests in CI, then proves it's good enough by counting the savings against a premium baseline.",
 } as const;
 
 // Labels for the homepage's illustrative model → review → savings flow.
