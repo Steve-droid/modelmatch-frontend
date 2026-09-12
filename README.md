@@ -1,6 +1,6 @@
 # Driftplain — Frontend
 
-> **P38r (prepared September 12, 2026):** Driftplain / driftplain.dev is the selected rebrand, pending review and release. Modicum at modicum.cloud remains live. Internal modelmatch identifiers are retained.
+> **P38r — shipped September 12, 2026:** Driftplain is live at **https://driftplain.dev**, with **https://api.driftplain.dev** as its runtime API. Trusted HTTPS, Google domain ownership, published Google branding and real sign-in are verified. Modicum/sslip.io endpoints and operational identifiers remain compatible. FE/BE 1.0.24, agents 1.1.3; runtime cutover GitOps v0.18.22.
 
 
 > Driftplain was previously Modicum / ModelMatch. Repository and infrastructure identifiers retain `modelmatch` for compatibility.
@@ -270,14 +270,16 @@ public Search Console HTML challenge for the operator's existing Google account 
 served unchanged so Google can recheck ownership; this avoids any DNS/registrar change.
 
 
-### Driftplain domain transition (P38r; pending)
+### Driftplain domain transition (P38r; shipped September 12, 2026)
 
 The selected open-diamond mark is maintained as native SVG under `src/assets/brand/driftplain-*`.
 `public/driftplain-favicon.svg` is the new cache-independent favicon URL; the old public favicon
 URL remains as an alias. The public privacy page uses Driftplain and retains the operator's contact.
 
-Reuse the existing Google Web client. Add `https://driftplain.dev` to authorized JavaScript
-origins and the new registered domain to Google branding, retaining the old authorized origin.
-Verify ownership, then update the app name/logo and homepage/privacy URLs after they are live.
-Preserve `public/googlecbd3e9a23700f7da.html` for existing ownership; use the exact proof Google
-requests for the new property. An offline Google test is not evidence of a configured live origin.
+The existing Google Web client now allows both https://driftplain.dev and https://modicum.cloud.
+Google verified the new domain's DNS proof and published the Driftplain name, logo, homepage
+and privacy URL. First sign-in from the new origin, retained sessions across API cutover and
+returning Google login were verified with an existing linked account. Password login also passes.
+`public/googlecbd3e9a23700f7da.html` remains available; the additional public ownership TXT
+record is managed in the infrastructure DNS root. Repository and auth/storage identifiers stay
+unchanged. Runtime uses https://api.driftplain.dev; existing Modicum and sslip.io hosts remain.
