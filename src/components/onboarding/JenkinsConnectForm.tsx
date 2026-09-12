@@ -17,7 +17,7 @@ export function isValidJenkinsUrl(value: string): boolean {
   }
 }
 
-// Jenkins SETUP — metadata only (base URL + job name). Modicum does not collect or
+// Jenkins SETUP — metadata only (base URL + job name). Driftplain does not collect or
 // store the provider key or a Jenkins API token; those live in Jenkins credentials.
 // The submit is caller-owned (onSubmit) so this serves onboarding's defer-create
 // (create-then-connect) and editing an existing connection alike. Continue is blocked
@@ -72,7 +72,7 @@ export function JenkinsConnectForm({
           <Plug size={15} />
         </span>
         <div className="leading-tight">
-          <div className="text-lg font-semibold">Point Modicum at your Jenkins</div>
+          <div className="text-lg font-semibold">Point Driftplain at your Jenkins</div>
           <div className="text-sm text-faint">
             {copy.intro}
           </div>
@@ -104,7 +104,7 @@ export function JenkinsConnectForm({
         />
       </Field>
 
-      {/* credentials the user creates in Jenkins — Modicum never receives them */}
+      {/* credentials the user creates in Jenkins — Driftplain never receives them */}
       <div className="rounded-xl border border-border bg-panel-2 px-3 py-2.5">
         <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
           <KeyRound size={13} className="text-signal" />
@@ -169,7 +169,7 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
   if (!runtimeHint) {
     return {
       intro:
-        "Modicum only needs the job's location. Runtime auth stays in Jenkins or AWS, never in Modicum.",
+        "Driftplain only needs the job's location. Runtime auth stays in Jenkins or AWS, never in Driftplain.",
       heading: 'In Jenkins, add these runtime requirements:',
       credentials: [
         {
@@ -187,7 +187,7 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
     const model = runtimeHint.modelLabel ?? "this Bedrock model";
     return {
       intro:
-        "Modicum only needs the job's location. Bedrock access stays on the Jenkins node's AWS IAM identity.",
+        "Driftplain only needs the job's location. Bedrock access stays on the Jenkins node's AWS IAM identity.",
       heading: 'In Jenkins, add this "Secret text" credential:',
       credentials: [ciToken],
       note: `${model} runs through ${runtimeHint.providerLabel}. Do not add modelmatch-model-api-key for this runtime; the Jenkins node or agent needs AWS IAM access for Bedrock instead.`,
@@ -196,7 +196,7 @@ function copyForRuntime(runtimeHint: JenkinsRuntimeHint | null): {
 
   return {
     intro:
-      "Modicum only needs the job's location. Your provider key stays in Jenkins.",
+      "Driftplain only needs the job's location. Your provider key stays in Jenkins.",
     heading: 'In Jenkins, add these "Secret text" credentials:',
     credentials: [
       {

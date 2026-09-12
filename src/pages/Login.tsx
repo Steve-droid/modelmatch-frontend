@@ -47,7 +47,7 @@ export function Login({
         <div className="mb-9">
           <p className="eyebrow">YOUR WORKSPACE</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted">Sign in to your Modicum workspace.</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">Sign in to your Driftplain workspace.</p>
         </div>
 
         <DemoNotice />

@@ -1,10 +1,13 @@
-# Modicum — Frontend
+# Driftplain — Frontend
 
-> Modicum was previously ModelMatch. Repository and infrastructure identifiers retain `modelmatch` for compatibility.
+> **P38r (prepared September 12, 2026):** Driftplain / driftplain.dev is the selected rebrand, pending review and release. Modicum at modicum.cloud remains live. Internal modelmatch identifiers are retained.
 
-> React SPA for **Modicum** — the recommender form, the project + Jenkins onboarding wizard, the
+
+> Driftplain was previously Modicum / ModelMatch. Repository and infrastructure identifiers retain `modelmatch` for compatibility.
+
+> React SPA for **Driftplain** — the recommender form, the project + Jenkins onboarding wizard, the
 > savings dashboard, and the grounded chat panel. Part of the
-> [Modicum portfolio build](../CLAUDE.md); full spec in [`../docs/planning/`](../docs/planning/).
+> [Driftplain portfolio build](../CLAUDE.md); full spec in [`../docs/planning/`](../docs/planning/).
 
 ## Table of Contents
 
@@ -22,7 +25,7 @@
 
 ## Overview
 
-The browser-facing UI for Modicum — the product whose one-liner is *prove a cheaper LLM is good
+The browser-facing UI for Driftplain — the product whose one-liner is *prove a cheaper LLM is good
 enough for your CI, and show the money saved.* This repo is the **presentation tier only**; it talks to
 the FastAPI backend over HTTPS/JSON and is served as static assets by nginx.
 
@@ -45,7 +48,7 @@ Key features:
 
 ### Where it fits — the two-surface model rule
 
-Modicum uses LLMs on **two separate surfaces**, and the FE touches neither directly — it only renders
+Driftplain uses LLMs on **two separate surfaces**, and the FE touches neither directly — it only renders
 what the backend returns:
 
 | Surface | Models | Auth |
@@ -265,3 +268,16 @@ P38n Google branding ownership proof: `public/googlecbd3e9a23700f7da.html` is th
 public Search Console HTML challenge for the operator's existing Google account and
 `https://modicum.cloud/`. It contains no client secret or authentication token. Keep it
 served unchanged so Google can recheck ownership; this avoids any DNS/registrar change.
+
+
+### Driftplain domain transition (P38r; pending)
+
+The selected open-diamond mark is maintained as native SVG under `src/assets/brand/driftplain-*`.
+`public/driftplain-favicon.svg` is the new cache-independent favicon URL; the old public favicon
+URL remains as an alias. The public privacy page uses Driftplain and retains the operator's contact.
+
+Reuse the existing Google Web client. Add `https://driftplain.dev` to authorized JavaScript
+origins and the new registered domain to Google branding, retaining the old authorized origin.
+Verify ownership, then update the app name/logo and homepage/privacy URLs after they are live.
+Preserve `public/googlecbd3e9a23700f7da.html` for existing ownership; use the exact proof Google
+requests for the new property. An offline Google test is not evidence of a configured live origin.

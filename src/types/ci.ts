@@ -1,5 +1,5 @@
 // Types mirroring the Jenkins-connection + CI-setup DTOs (app/schemas/jenkins.py,
-// app/schemas/ci.py; camelCase out). Secrets never travel to Modicum — they live
+// app/schemas/ci.py; camelCase out). Secrets never travel to Driftplain — they live
 // in Jenkins credentials; the connection is metadata-only in and out (no secret refs).
 
 // PUT /projects/{id}/jenkins — metadata only (base URL + job name). The backend

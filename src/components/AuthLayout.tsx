@@ -2,7 +2,7 @@ import { BRAND_NAME } from "../lib/brand";
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { ModelNamesBackdrop } from "./home/ModelNamesBackdrop";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
+import markUrl from "../assets/brand/driftplain-mark.svg";
 
 /** Shared canvas keeps sign-in, registration, and the session probe visually continuous. */
 export function AuthLayout({ children }: { children: ReactNode }) {

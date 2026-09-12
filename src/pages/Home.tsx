@@ -1,7 +1,7 @@
 import { BRAND_NAME } from "../lib/brand";
 import { LogOut } from "lucide-react";
 import { WelcomeSection } from "../components/home/WelcomeSection";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
+import markUrl from "../assets/brand/driftplain-mark.svg";
 
 // One post-login hub. Both destinations are available immediately; small screens
 // use normal document scrolling so no part of the illustration becomes inaccessible.

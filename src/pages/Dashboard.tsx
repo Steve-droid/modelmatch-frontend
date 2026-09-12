@@ -22,7 +22,7 @@ import { QualityTrend } from "../components/QualityTrend";
 import { RunsTable } from "../components/RunsTable";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChatPanel } from "../components/ChatPanel";
-import markUrl from "../assets/brand/modelmatch-mark.svg";
+import markUrl from "../assets/brand/driftplain-mark.svg";
 
 const RANGES: SavingsRange[] = ["all", "30d", "7d"];
 

@@ -1,6 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 
-// A tiny stateful mock of the Modicum backend for the hermetic happy path. It
+// A tiny stateful mock of the Driftplain backend for the hermetic happy path. It
 // intercepts every call to the API origin (config.apiBaseUrl, default
 // http://localhost:8000) and answers with fixtures shaped exactly like the real API
 // (see src/api/* + src/types/*). It is deliberately minimal: just the endpoints the
@@ -281,7 +281,7 @@ export async function mockBackend(page: Page): Promise<MockHandle> {
     if (/^\/projects\/\d+\/ci-setup$/.test(path) && method === "GET")
       return json(route, {
         snippet:
-          "stage('Modicum') {\n  steps {\n    sh 'docker run --rm -e MODELMATCH_CI_TOKEN " +
+          "stage('Driftplain') {\n  steps {\n    sh 'docker run --rm -e MODELMATCH_CI_TOKEN " +
           "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.0.0'\n  }\n}",
         imageRef: "832285994273.dkr.ecr.ap-south-1.amazonaws.com/modelmatch-agent:1.0.0",
         ciRunsUrl: "http://localhost:8000/projects/7/ci-runs",

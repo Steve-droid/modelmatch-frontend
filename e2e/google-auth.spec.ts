@@ -88,7 +88,7 @@ test("both auth screens link to the public privacy policy", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Privacy policy", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Retention and deletion requests" })).toBeVisible();
-  await page.getByRole("link", { name: "Back to Modicum" }).click();
+  await page.getByRole("link", { name: "Back to Driftplain" }).click();
   await expect(page.getByLabel("Email")).toBeVisible();
 });
 
@@ -101,9 +101,9 @@ test("privacy is readable without JavaScript, auth or third-party requests", asy
   });
   const response = await page.goto(new URL("/privacy.html", baseURL!).href);
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveTitle("Privacy policy · Modicum");
+  await expect(page).toHaveTitle("Privacy policy · Driftplain");
   await expect(page.getByRole("heading", { name: "Privacy policy", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Back to Modicum" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to Driftplain" })).toBeVisible();
   expect(externalRequests).toEqual([]);
   await context.close();
 });

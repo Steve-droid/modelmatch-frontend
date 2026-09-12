@@ -22,7 +22,7 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole("heading", { name: projects[0].name })).toBeVisible();
     await expect(page.getByText("Cumulative saved", { exact: true })).toBeVisible();
     await expect(page.getByText("Setup incomplete", { exact: true })).toHaveCount(0);
-    await expect(page.getByText("Ask Modicum", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Ask Driftplain", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "CI-Agent actions" }).click();
     await expect(page.getByRole("menuitem", { name: "CI setup & token" })).toHaveCount(0);
     await expect(page.getByRole("menuitem", { name: "Delete CI-Agent" })).toBeVisible();
